@@ -1,0 +1,49 @@
+# Build directories
+/build/
+/bin/
+/lib/
+/out/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+DartConfiguration.tcl
+Install_manifest.txt
+CPackConfig.cmake
+CPackSourceConfig.cmake
+*.cmake
+!CMakeLists.txt
+
+# Compiled object files & static/dynamic libraries
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+*.exe
+
+# Engine binary outputs (compiled proof graphs)
+*.theos
+
+# IDE / Editor specific files
+.vscode/
+.vs/
+.idea/
+*.suo
+*.user
+*.ipch
+*.vcxproj.user
+
+# Operating System generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
