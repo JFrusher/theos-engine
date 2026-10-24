@@ -251,6 +251,8 @@ Answers to the original open questions (2026-10-24) and decisions made while bui
 | 3 | **Gödel's ontological argument is a 1.0 goal.** The formula language therefore includes property variables, property abstraction (λ) and definitions on top of first-order S5 (Phase 6). |
 | 4 | **Library for 1.0** must include Gödel; others chosen during Phase 7. |
 | 5 | **Names stay:** Theos, `theosc`, `.theo` source, `.theos` binary. |
+| 6 | **Gödel's axioms are necessary truths** (`[]...`), as Gödel and Scott intend; this is what lets T2 be necessitated and used in T3. |
+| 7 | **Constant domains and rigid names** for quantified S5 (Barcan formulas hold), the standard setting for both ontological arguments. |
 
 ---
 
@@ -264,3 +266,4 @@ Answers to the original open questions (2026-10-24) and decisions made while bui
 | 3 Propositional logic | done — the natural-deduction checker already implements the full rule set (quantifiers, identity, S5, definitions, property variables) because the substitution machinery is shared and the Aquinas example needs first-order proofs to pass; formulas are immutable shared trees rather than hash-consed (structural sharing happens in the binary encoder); 39 exercises plus misuse tests; recursive definitions are rejected so expansion terminates |
 | 4 Web | done — Emscripten 3.1.74 build with wasm exceptions (embind `check` returning JSON); playground with live verdict, graph, glosses keyed to lines, shareable `#src=` links; `theosc site` gallery with Fitch-style proof rendering; Node and Playwright smoke tests; Pages deployment needs Pages enabled ("GitHub Actions" source) in repository settings |
 | 5 First-order logic | done — sort checker (docs/spec/language.md §6) infers one type per free name across nodes, proofs, objections and definitions, and runs before proof checking; `library/arguments/` holds the gallery set (Aquinas, kalam, resurrection) and `examples/` holds teaching examples, including one invalid on purpose |
+| 6 Modal logic | done — S5 tableau (non-branching rules first, 200k-step budget) decides propositional modal inferences with Kripke countermodels; Plantinga's argument is checked by it with no hand proof; Gödel's argument (Scott's version) is fully proved in natural deduction: T1, the corollary, T2 and T3, mutation-tested; Gödel's axioms are stated as necessary truths so proofs may use them inside strict subproofs |

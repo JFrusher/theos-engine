@@ -12,7 +12,10 @@ How `theosc check` decides that an inferred node (a `deduction` or
 | `by z3` | The Z3 SMT solver must prove the entailment (see the Z3 section of the roadmap). |
 | `proof { ... }` | Natural deduction, rules below. |
 
-A truth table is limited to 20 distinct atoms.
+A truth table is limited to 20 distinct atoms, and the S5 tableau to 200,000
+expansion steps; beyond either limit the node needs a proof. An invalid modal
+inference is reported with a Kripke countermodel: one valuation per world,
+every world accessible from every other.
 
 ## 2. Proof structure
 
