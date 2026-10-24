@@ -1,4 +1,5 @@
 #include "theos/driver.hpp"
+#include "theos/checker.hpp"
 #include "theos/parser.hpp"
 #include "theos/validator.hpp"
 #include <fstream>
@@ -18,6 +19,9 @@ Result check_source(std::string text, const std::string& path) {
     result.doc = std::move(*parsed);
     auto diags = Validator::validate(*result.doc);
     result.diagnostics.insert(result.diagnostics.end(), diags.begin(), diags.end());
+    if (has_errors(result.diagnostics)) return result;   // logic checking assumes a well-formed document
+    auto logic = Checker::check(*result.doc);
+    result.diagnostics.insert(result.diagnostics.end(), logic.begin(), logic.end());
     return result;
 }
 

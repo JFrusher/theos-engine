@@ -106,3 +106,10 @@ TEST_CASE("Examples validate", "[validator][examples]") {
         REQUIRE(r.ok());
     }
 }
+
+TEST_CASE("Definitions may only use earlier definitions", "[validator]") {
+    auto d = diagnose("define G(x) := G(x)\ndefine A := B\ndefine B := C\n");
+    REQUIRE(has(d, Severity::Error, "definition 'G' refers to itself"));
+    REQUIRE(has(d, Severity::Error, "definition 'A' refers to 'B', which is defined later"));
+    REQUIRE(diagnose("define B := C\ndefine A := B\n").empty());
+}
