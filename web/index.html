@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Theos Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700&family=IM+Fell+English&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="theos.css">
+<link rel="stylesheet" href="playground.css">
+</head>
+<body>
+<header class="bar">
+    <h1 class="wordmark">Theos</h1>
+    <p class="tagline">Write an argument. See whether it holds.</p>
+    <label class="picker">
+        <span>Example</span>
+        <select id="examples"></select>
+    </label>
+    <a class="nav" href="gallery/">Gallery</a>
+</header>
+
+<main class="workspace">
+    <section class="source" aria-label="Argument source">
+        <textarea id="source" spellcheck="false"></textarea>
+    </section>
+
+    <section class="page result" aria-live="polite">
+        <h2 id="verdict" class="verdict">Loading the checker…</h2>
+        <p id="verdict-detail" class="verdict-detail"></p>
+        <div id="graph" class="graph" aria-label="Argument graph"></div>
+        <ol id="notes" class="notes"></ol>
+    </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/simple.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="dist/theos.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
