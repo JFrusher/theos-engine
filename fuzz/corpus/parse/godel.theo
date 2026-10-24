@@ -1,0 +1,239 @@
+// Gödel's ontological argument in Dana Scott's version, in higher-order S5
+// with constant domains. "Positive" is Gödel's primitive. The axioms are stated
+// as necessary truths, as Gödel and Scott intend them. Every step is proved in
+// natural deduction and machine-checked.
+
+argument "Gödel's Ontological Argument" by "Kurt Gödel, in Dana Scott's version"
+
+axiom Godel = source("Kurt Gödel, Ontologischer Beweis", "1970")
+axiom Scott = source("Dana Scott, notes on Gödel's ontological proof", "1972")
+
+define G(x) := forall F:prop. Positive(F) -> F(x)
+define Ess(F:prop, x) := F(x) & (forall H:prop. H(x) -> []forall y. (F(y) -> H(y)))
+define NE(x) := forall F:prop. Ess(F, x) -> []exists y. F(y)
+
+premise A1 grounded_by [Godel, Scott] {
+    text:    "Necessarily, a property is positive exactly when its negation is not."
+    formula: [](forall F:prop. Positive(\x. ~F(x)) <-> ~Positive(F))
+}
+
+premise A2 grounded_by [Godel, Scott] {
+    text:    "Necessarily, a property necessarily entailed by a positive property is positive."
+    formula: [](forall F:prop. forall H:prop. (Positive(F) & []forall x. (F(x) -> H(x))) -> Positive(H))
+}
+
+premise A3 grounded_by [Godel, Scott] {
+    text:    "Necessarily, being God-like (having every positive property) is positive."
+    formula: []Positive(G)
+}
+
+premise A4 grounded_by [Godel, Scott] {
+    text:    "Necessarily, a positive property is necessarily positive."
+    formula: [](forall F:prop. Positive(F) -> []Positive(F))
+}
+
+premise A5 grounded_by [Godel, Scott] {
+    text:    "Necessarily, necessary existence is positive."
+    formula: []Positive(NE)
+}
+
+deduction T1 from [A1, A2] {
+    text:    "A positive property is possibly exemplified."
+    formula: forall F:prop. Positive(F) -> <>exists x. F(x)
+    proof {
+        1. [](forall F:prop. Positive(\x. ~F(x)) <-> ~Positive(F))                                  premise A1
+        2. [](forall F:prop. forall H:prop. (Positive(F) & []forall x. (F(x) -> H(x))) -> Positive(H))  premise A2
+        3. forall F:prop. Positive(\x. ~F(x)) <-> ~Positive(F)                                      box_e 1
+        4. forall F:prop. forall H:prop. (Positive(F) & []forall x. (F(x) -> H(x))) -> Positive(H)     box_e 2
+        { [Q]
+            {
+                5. Positive(Q)                                                     assume
+                // Suppose Q could not be exemplified
+                {
+                    6. ~<>exists x. Q(x)                                           assume
+                    7. []~exists x. Q(x)                                           md 6
+                    // Then necessarily everything that is Q is not-Q
+                    box {
+                        8. []~exists x. Q(x)                                       reit 7
+                        9. ~exists x. Q(x)                                         box_e 8
+                        10. forall x. ~Q(x)                                        qn 9
+                        { [c]
+                            11. ~Q(c)                                              forall_e 10
+                            {
+                                12. Q(c)                                           assume
+                                13. ~Q(c)                                          reit 11
+                            }
+                            14. Q(c) -> ~Q(c)                                      imp_i 12-13
+                        }
+                        15. forall x. (Q(x) -> ~Q(x))                              forall_i 11-14
+                    }
+                    16. []forall x. (Q(x) -> ~Q(x))                                box_i 8-15
+                    // So by A2 the negation of Q is positive, contradicting A1
+                    17. Positive(Q) & []forall x. (Q(x) -> ~Q(x))                  and_i 5, 16
+                    18. forall H:prop. (Positive(Q) & []forall x. (Q(x) -> H(x))) -> Positive(H)   forall_e 4
+                    19. (Positive(Q) & []forall x. (Q(x) -> ~Q(x))) -> Positive(\x. ~Q(x))        forall_e 18
+                    20. Positive(\x. ~Q(x))                                        imp_e 19, 17
+                    21. Positive(\x. ~Q(x)) <-> ~Positive(Q)                       forall_e 3
+                    22. ~Positive(Q)                                               iff_e 21, 20
+                    23. bot                                                        not_e 5, 22
+                }
+                24. <>exists x. Q(x)                                               raa 6-23
+            }
+            25. Positive(Q) -> <>exists x. Q(x)                                    imp_i 5-24
+        }
+        26. forall F:prop. Positive(F) -> <>exists x. F(x)                         forall_i 5-25
+    }
+}
+
+deduction Cor from [T1, A3] {
+    text:    "Possibly, a God-like being exists."
+    formula: <>exists x. G(x)
+    proof {
+        1. forall F:prop. Positive(F) -> <>exists x. F(x)      premise T1
+        2. []Positive(G)                                       premise A3
+        3. Positive(G)                                         box_e 2
+        4. Positive(G) -> <>exists x. G(x)                     forall_e 1
+        5. <>exists x. G(x)                                    imp_e 4, 3
+    }
+}
+
+deduction T2 from [A1, A4] {
+    text:    "Necessarily, being God-like is the essence of any God-like being."
+    formula: []forall x. (G(x) -> Ess(G, x))
+    proof {
+        1. [](forall F:prop. Positive(\x. ~F(x)) <-> ~Positive(F))         premise A1
+        2. [](forall F:prop. Positive(F) -> []Positive(F))                 premise A4
+        box {
+            3. [](forall F:prop. Positive(\x. ~F(x)) <-> ~Positive(F))     reit 1
+            4. [](forall F:prop. Positive(F) -> []Positive(F))             reit 2
+            5. forall F:prop. Positive(\x. ~F(x)) <-> ~Positive(F)         box_e 3
+            6. forall F:prop. Positive(F) -> []Positive(F)                 box_e 4
+            { [a]
+                {
+                    7. G(a)                                                assume
+                    8. forall F:prop. Positive(F) -> F(a)                  def 7
+                    // Every property S of a is necessarily implied by being God-like
+                    { [S]
+                        {
+                            9. S(a)                                        assume
+                            // S is positive: otherwise its negation would be, and a would lack S
+                            {
+                                10. ~Positive(S)                           assume
+                                11. Positive(\x. ~S(x)) <-> ~Positive(S)   forall_e 5
+                                12. Positive(\x. ~S(x))                    iff_e 11, 10
+                                13. Positive(\x. ~S(x)) -> ~S(a)           forall_e 8
+                                14. ~S(a)                                  imp_e 13, 12
+                                15. bot                                    not_e 9, 14
+                            }
+                            16. Positive(S)                                raa 10-15
+                            17. Positive(S) -> []Positive(S)               forall_e 6
+                            18. []Positive(S)                              imp_e 17, 16
+                            box {
+                                19. []Positive(S)                          reit 18
+                                20. Positive(S)                            box_e 19
+                                { [b]
+                                    {
+                                        21. G(b)                           assume
+                                        22. forall F:prop. Positive(F) -> F(b)   def 21
+                                        23. Positive(S) -> S(b)            forall_e 22
+                                        24. S(b)                           imp_e 23, 20
+                                    }
+                                    25. G(b) -> S(b)                       imp_i 21-24
+                                }
+                                26. forall y. (G(y) -> S(y))               forall_i 21-25
+                            }
+                            27. []forall y. (G(y) -> S(y))                 box_i 19-26
+                        }
+                        28. S(a) -> []forall y. (G(y) -> S(y))             imp_i 9-27
+                    }
+                    29. forall H:prop. H(a) -> []forall y. (G(y) -> H(y))  forall_i 9-28
+                    30. G(a) & (forall H:prop. H(a) -> []forall y. (G(y) -> H(y)))   and_i 7, 29
+                    31. Ess(G, a)                                          def 30
+                }
+                32. G(a) -> Ess(G, a)                                      imp_i 7-31
+            }
+            33. forall x. (G(x) -> Ess(G, x))                              forall_i 7-32
+        }
+        34. []forall x. (G(x) -> Ess(G, x))                                box_i 3-33
+    }
+}
+
+conclusion T3 from [Cor, T2, A5] {
+    text:    "Necessarily, a God-like being exists."
+    formula: []exists x. G(x)
+    proof {
+        1. <>exists x. G(x)                                    premise Cor
+        2. []forall x. (G(x) -> Ess(G, x))                     premise T2
+        3. []Positive(NE)                                      premise A5
+        // Necessarily, if a God-like being exists, one exists necessarily
+        box {
+            4. []forall x. (G(x) -> Ess(G, x))                 reit 2
+            5. []Positive(NE)                                  reit 3
+            6. forall x. (G(x) -> Ess(G, x))                   box_e 4
+            7. Positive(NE)                                    box_e 5
+            {
+                8. exists x. G(x)                              assume
+                { [g]
+                    9. G(g)                                    assume
+                    10. forall F:prop. Positive(F) -> F(g)     def 9
+                    11. Positive(NE) -> NE(g)                  forall_e 10
+                    12. NE(g)                                  imp_e 11, 7
+                    13. forall F:prop. Ess(F, g) -> []exists y. F(y)   def 12
+                    14. Ess(G, g) -> []exists y. G(y)          forall_e 13
+                    15. G(g) -> Ess(G, g)                      forall_e 6
+                    16. Ess(G, g)                              imp_e 15, 9
+                    17. []exists y. G(y)                       imp_e 14, 16
+                }
+                18. []exists y. G(y)                           exists_e 8, 9-17
+            }
+            19. (exists x. G(x)) -> []exists y. G(y)           imp_i 8-18
+        }
+        20. []((exists x. G(x)) -> []exists y. G(y))           box_i 4-19
+        // So possibly a God-like being exists necessarily
+        box {
+            21. exists x. G(x)                                 assume
+            22. []((exists x. G(x)) -> []exists y. G(y))       reit 20
+            23. (exists x. G(x)) -> []exists y. G(y)           box_e 22
+            24. []exists y. G(y)                               imp_e 23, 21
+        }
+        25. <>[]exists y. G(y)                                 dia_e 1, 21-24
+        // In S5 what is possibly necessary is necessary
+        {
+            26. ~[]exists y. G(y)                              assume
+            27. <>~exists y. G(y)                              md 26
+            box {
+                28. []exists y. G(y)                           assume
+                29. <>~exists y. G(y)                          reit 27
+                30. ~[]exists y. G(y)                          md 29
+                31. bot                                        not_e 28, 30
+            }
+            32. <>bot                                          dia_e 25, 28-31
+            33. ~[]~bot                                        md 32
+            box {
+                {
+                    34. bot                                    assume
+                }
+                35. ~bot                                       not_i 34-34
+            }
+            36. []~bot                                         box_i 34-35
+            37. bot                                            not_e 36, 33
+        }
+        38. []exists y. G(y)                                   raa 26-37
+    }
+}
+
+objection O1 against A1 {
+    text: "Gödel never defines a positive property, so nothing guarantees the axioms describe anything coherent."
+}
+
+reply R1 to O1 {
+    text: "Automated model finders have exhibited models of Scott's axioms (Benzmüller and Woltzenlogel Paleo, 2014), so they are consistent."
+}
+
+objection O2 against T3 {
+    text: "Sobel showed that the axioms entail modal collapse: every truth becomes a necessary truth."
+}
+
+reply R2 to O2 {
+    text: "Emended axiom systems, such as Anderson's, block the collapse while keeping the conclusion."
+}

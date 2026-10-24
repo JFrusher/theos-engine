@@ -20,10 +20,14 @@ Theos bridges this gap. It provides a deterministic pipeline to turn human-reada
 ```
 
 The logic checker proves that every deduction and conclusion follows from the nodes it cites:
-propositional inferences are decided by truth table (with a counterexample when they fail), and
-anything richer is checked line by line as a Fitch-style natural-deduction proof covering
+propositional inferences are decided by truth table and propositional modal ones by an S5 tableau
+(each with a counterexample when they fail), and anything richer is checked line by line as a Fitch-style natural-deduction proof covering
 propositional, first-order, identity, S5 modal and higher-order (property) reasoning. The rules are
 specified in [docs/spec/proofs.md](docs/spec/proofs.md).
+
+The library includes Aquinas's First Way, the kalam argument, Plantinga's modal ontological
+argument, and **Gödel's ontological argument in Scott's version**, every step of which is
+machine-checked in higher-order S5.
 
 Each claim in a `.theo` file carries natural-language text and a formula:
 

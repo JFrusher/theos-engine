@@ -1,6 +1,7 @@
 #include "theos/checker.hpp"
 #include "theos/logic.hpp"
 #include "theos/proof_checker.hpp"
+#include "theos/s5.hpp"
 #include "theos/truth_table.hpp"
 #include <unordered_map>
 
@@ -32,9 +33,24 @@ Diagnostics decide(const AST::Node& node, const Proofs::Goal& goal, const Logic:
             for (const auto& [atom, value] : result->countermodel) model += (model.empty() ? "" : ", ") + atom + " = " + (value ? "true" : "false");
             return error(node.id + " does not follow from " + list_premises(goal) + ": counterexample " + model);
         }
-        case Logic::Fragment::PropositionalModal:
+        case Logic::Fragment::PropositionalModal: {
+            const auto decided = S5::entails(premises, conclusion);
+            if (!decided) return error(node.id + ": " + decided.error());
+            const auto& result = *decided;
+            if (result.valid) return {};
+            std::string model;
+            for (size_t w = 0; w < result.countermodel.size(); ++w) {
+                model += (w ? "; in w" : "in w") + std::to_string(w) + (w == 0 ? " (actual)" : "");
+                for (size_t i = 0; i < result.countermodel[w].size(); ++i) {
+                    const auto& [atom, value] = result.countermodel[w][i];
+                    model += (i ? ", " : " ") + atom + " = " + (value ? "true" : "false");
+                }
+            }
+            return error(node.id + " does not follow from " + list_premises(goal) + " in S5: counterexample with " +
+                         std::to_string(result.countermodel.size()) + " world" + (result.countermodel.size() == 1 ? "" : "s") + ", " + model);
+        }
         case Logic::Fragment::Higher:
-            return error(node.id + ": this inference is outside the propositional fragment; justify it with a proof { ... } or 'by <rule>'");
+            return error(node.id + ": this inference involves quantifiers, identity or properties; justify it with a proof { ... } or 'by <rule>'");
     }
     return {};
 }

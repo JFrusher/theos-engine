@@ -101,7 +101,7 @@ TEST_CASE("Definitions are expanded before deciding", "[checker]") {
 
 TEST_CASE("First-order inferences need a proof", "[checker]") {
     require_error("premise P1 { text: \"\" formula: forall x. P(x) }\nconclusion C from [P1] { text: \"\" formula: P(a) }\n",
-                  "outside the propositional fragment");
+                  "involves quantifiers, identity or properties");
 }
 
 TEST_CASE("Single rule justification", "[checker]") {
@@ -498,4 +498,65 @@ TEST_CASE("Propositional rule misuse", "[proofs][errors]") {
         6. C or_e 1, 2-3, 4-5)"), "reit must repeat");
     require_error(argument({"T"}, "A | B", "1. A | B lem"), "lem concludes");
     require_error(argument({"A -> B"}, "B -> A", "1. A -> B premise P1\n2. B -> A dm 1"), "is not a De Morgan form");
+}
+
+// ------------------------------------------------------------ S5 decision procedure
+
+#include "theos/s5.hpp"
+
+TEST_CASE("S5 tableau decides modal propositional entailment", "[s5]") {
+    auto valid = [](std::vector<const char*> ps, const char* c) {
+        std::vector<ExprPtr> premises;
+        for (auto p : ps) premises.push_back(f(p));
+        return S5::entails(premises, f(c))->valid;
+    };
+    REQUIRE(valid({"[](A -> B)", "[]A"}, "[]B"));        // K
+    REQUIRE(valid({"[]A"}, "A"));                         // T
+    REQUIRE(valid({"[]A"}, "[][]A"));                     // 4
+    REQUIRE(valid({"<>A"}, "[]<>A"));                     // 5
+    REQUIRE(valid({"A"}, "[]<>A"));                       // B
+    REQUIRE(valid({"<>[]A"}, "[]A"));                     // the S5 collapse Plantinga relies on
+    REQUIRE(valid({"<>M", "[](M -> []M)"}, "[]M"));       // Plantinga's argument
+    REQUIRE(valid({}, "[](A & B) <-> []A & []B"));
+    REQUIRE_FALSE(valid({"<>A"}, "[]A"));
+    REQUIRE_FALSE(valid({"<>A", "<>B"}, "<>(A & B)"));
+    REQUIRE_FALSE(valid({"[](A | B)"}, "[]A | []B"));
+}
+
+TEST_CASE("S5 countermodels list every world", "[s5]") {
+    const auto r = *S5::entails({f("<>A")}, f("[]A"));
+    REQUIRE_FALSE(r.valid);
+    REQUIRE(r.countermodel.size() == 2);
+    bool some_true = false, some_false = false;
+    for (const auto& w : r.countermodel) {
+        REQUIRE(w.size() == 1);
+        (w[0].second ? some_true : some_false) = true;
+    }
+    REQUIRE(some_true);
+    REQUIRE(some_false);
+}
+
+TEST_CASE("Unjustified modal inferences are decided in S5", "[checker][s5]") {
+    require_valid("premise P1 { text: \"\" formula: <>[]M }\nconclusion C from [P1] { text: \"\" formula: M }\n");
+    require_error("premise P1 { text: \"\" formula: <>A }\nconclusion C from [P1] { text: \"\" formula: []A }\n",
+                  "C does not follow from P1 in S5: counterexample with 2 worlds");
+}
+
+TEST_CASE("S5 tableau gives up on exponential input instead of hanging", "[s5]") {
+    // Necessarily, 6 pigeons sit in 5 holes with no hole shared: unsatisfiable, and exponential for tableaux
+    std::string php;
+    auto p = [](int pigeon, int hole) { return "P" + std::to_string(pigeon) + "_" + std::to_string(hole); };
+    for (int i = 0; i < 6; ++i) {
+        std::string some;
+        for (int h = 0; h < 5; ++h) some += (h ? " | " : "") + p(i, h);
+        php += (php.empty() ? "(" : " & (") + some + ")";
+    }
+    for (int h = 0; h < 5; ++h) {
+        for (int i = 0; i < 6; ++i) {
+            for (int j = i + 1; j < 6; ++j) php += " & (~" + p(i, h) + " | ~" + p(j, h) + ")";
+        }
+    }
+    auto r = S5::entails({f(("[](" + php + ")").c_str())}, f("[]Q"));
+    REQUIRE_FALSE(r);
+    REQUIRE(r.error().find("too complex") != std::string::npos);
 }

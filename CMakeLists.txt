@@ -36,6 +36,7 @@ add_library(theos_core STATIC
     src/core/logic.cpp
     src/core/parser.cpp
     src/core/proof_checker.cpp
+    src/core/s5.cpp
     src/core/site.cpp
     src/core/truth_table.cpp
     src/core/types.cpp

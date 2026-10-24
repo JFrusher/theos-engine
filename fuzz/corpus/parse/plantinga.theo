@@ -1,0 +1,36 @@
+// Plantinga's modal ontological argument in propositional S5. M stands for
+// "a maximally great being exists". The inference needs no hand proof: the S5
+// decision procedure checks it. All the weight rests on the possibility premise.
+
+argument "The Modal Ontological Argument" by "Alvin Plantinga"
+
+axiom Nature = source("Alvin Plantinga, The Nature of Necessity", "ch. X")
+axiom MG     = principle("Maximal greatness includes necessary existence.")
+
+premise P1 grounded_by [Nature] {
+    text:    "It is possible that a maximally great being exists."
+    formula: <>M
+}
+
+premise P2 grounded_by [MG] {
+    text:    "Necessarily, if a maximally great being exists, it exists necessarily."
+    formula: [](M -> []M)
+}
+
+deduction D1 from [P1, P2] {
+    text:    "Therefore it is necessary that a maximally great being exists."
+    formula: []M
+}
+
+conclusion C1 from [D1] by box_e {
+    text:    "Therefore a maximally great being exists."
+    formula: M
+}
+
+objection O1 against P1 {
+    text: "By parity, it is possible that no maximally great being exists; in S5 that premise yields the opposite conclusion."
+}
+
+reply R1 to O1 {
+    text: "The two possibility claims are not on a par: reasons to think maximal greatness coherent favour P1 over its rival."
+}
