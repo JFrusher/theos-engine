@@ -1,5 +1,6 @@
 #include "theos/validator.hpp"
 #include "theos/canon.hpp"
+#include "theos/logic.hpp"
 #include <algorithm>
 #include <functional>
 #include <unordered_map>
@@ -29,6 +30,7 @@ public:
     Diagnostics run() {
         collect_names();
         check_axioms();
+        check_definitions();
         check_nodes();
         check_dialectics();
         check_cycles();
@@ -87,6 +89,21 @@ private:
                 continue;
             }
             ax.scripture = *ref;
+        }
+    }
+
+    // Definitions may use only earlier definitions, so expansion always terminates
+    void check_definitions() {
+        std::unordered_set<std::string> later;
+        for (const auto& d : doc_.definitions) later.insert(d.id);
+        for (const auto& d : doc_.definitions) {
+            later.erase(d.id);
+            std::unordered_set<std::string> params;
+            for (const auto& p : d.params) params.insert(p.name);
+            for (const auto& name : Logic::free_names(*d.body)) {
+                if (name == d.id) error(d.span, "definition '" + d.id + "' refers to itself");
+                else if (later.contains(name) && !params.contains(name)) error(d.span, "definition '" + d.id + "' refers to '" + name + "', which is defined later");
+            }
         }
     }
 

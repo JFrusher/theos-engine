@@ -27,12 +27,16 @@ add_library(theos_core STATIC
     src/core/ast.cpp
     src/core/binary.cpp
     src/core/canon.cpp
+    src/core/checker.cpp
     src/core/diagnostic.cpp
     src/core/driver.cpp
     src/core/exporter.cpp
     src/core/expr.cpp
     src/core/lexer.cpp
+    src/core/logic.cpp
     src/core/parser.cpp
+    src/core/proof_checker.cpp
+    src/core/truth_table.cpp
     src/core/validator.cpp
 )
 target_include_directories(theos_core PUBLIC include)

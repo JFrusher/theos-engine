@@ -35,9 +35,72 @@ premise P5 grounded_by [ST, Ps102, Heb1] {
 deduction D1 from [P1, P2, P3, P4] {
     text:    "Therefore there is a first mover, moved by no other."
     formula: exists y. (~Moved(y) & exists x. Moves(y, x))
+    proof {
+        1. exists x. Moved(x)                                         premise P1
+        2. forall x. Moved(x) -> exists y. (Moves(y, x) & y != x)      premise P2
+        3. ~Regress                                                   premise P3
+        4. (exists x. Moved(x)) & (forall x. Moved(x) -> exists y. (Moves(y, x) & y != x)) & (forall x. forall y. Moved(x) & Moves(y, x) -> Moved(y)) -> Regress   premise P4
+        5. (exists x. Moved(x)) & (forall x. Moved(x) -> exists y. (Moves(y, x) & y != x))   and_i 1, 2
+        // Suppose every mover of a moved thing were itself moved: then the regress follows
+        {
+            6. forall x. forall y. Moved(x) & Moves(y, x) -> Moved(y)  assume
+            7. (exists x. Moved(x)) & (forall x. Moved(x) -> exists y. (Moves(y, x) & y != x)) & (forall x. forall y. Moved(x) & Moves(y, x) -> Moved(y))   and_i 5, 6
+            8. Regress                                                imp_e 4, 7
+            9. bot                                                    not_e 8, 3
+        }
+        10. ~forall x. forall y. Moved(x) & Moves(y, x) -> Moved(y)    not_i 6-9
+        11. exists x. ~forall y. Moved(x) & Moves(y, x) -> Moved(y)    qn 10
+        { [a]
+            12. ~forall y. Moved(a) & Moves(y, a) -> Moved(y)          assume
+            13. exists y. ~(Moved(a) & Moves(y, a) -> Moved(y))        qn 12
+            { [b]
+                14. ~(Moved(a) & Moves(b, a) -> Moved(b))              assume
+                // a not-implication gives its antecedent ...
+                {
+                    15. ~(Moved(a) & Moves(b, a))                      assume
+                    {
+                        16. Moved(a) & Moves(b, a)                     assume
+                        17. bot                                        not_e 16, 15
+                        18. Moved(b)                                   bot_e 17
+                    }
+                    19. Moved(a) & Moves(b, a) -> Moved(b)             imp_i 16-18
+                    20. bot                                            not_e 19, 14
+                }
+                21. Moved(a) & Moves(b, a)                             raa 15-20
+                // ... and the negation of its consequent
+                {
+                    22. Moved(b)                                       assume
+                    {
+                        23. Moved(a) & Moves(b, a)                     assume
+                        24. Moved(b)                                   reit 22
+                    }
+                    25. Moved(a) & Moves(b, a) -> Moved(b)             imp_i 23-24
+                    26. bot                                            not_e 25, 14
+                }
+                27. ~Moved(b)                                          not_i 22-26
+                28. Moves(b, a)                                        and_e 21
+                29. exists x. Moves(b, x)                              exists_i 28
+                30. ~Moved(b) & exists x. Moves(b, x)                  and_i 27, 29
+                31. exists y. (~Moved(y) & exists x. Moves(y, x))      exists_i 30
+            }
+            32. exists y. (~Moved(y) & exists x. Moves(y, x))          exists_e 13, 14-31
+        }
+        33. exists y. (~Moved(y) & exists x. Moves(y, x))              exists_e 11, 12-32
+    }
 }
 
 conclusion C1 from [D1, P5] {
     text:    "Therefore God exists."
     formula: exists y. God(y)
+    proof {
+        1. exists y. (~Moved(y) & exists x. Moves(y, x))               premise D1
+        2. forall y. (~Moved(y) & exists x. Moves(y, x)) -> God(y)     premise P5
+        { [g]
+            3. ~Moved(g) & exists x. Moves(g, x)                       assume
+            4. (~Moved(g) & exists x. Moves(g, x)) -> God(g)           forall_e 2
+            5. God(g)                                                  imp_e 4, 3
+            6. exists y. God(y)                                        exists_i 5
+        }
+        7. exists y. God(y)                                            exists_e 1, 3-6
+    }
 }

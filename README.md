@@ -15,9 +15,15 @@ Theos bridges this gap. It provides a deterministic pipeline to turn human-reada
 ## Pipeline
 
 ```
-.theo source ─► Lexer ─► Parser ─► AST ─► Validator ─┬─► Mermaid exporter
-                                                      └─► .theos binary (encode / decode)
+.theo source ─► Lexer ─► Parser ─► AST ─► Validator ─► Logic checker ─┬─► Mermaid exporter
+                                                                       └─► .theos binary (encode / decode)
 ```
+
+The logic checker proves that every deduction and conclusion follows from the nodes it cites:
+propositional inferences are decided by truth table (with a counterexample when they fail), and
+anything richer is checked line by line as a Fitch-style natural-deduction proof covering
+propositional, first-order, identity, S5 modal and higher-order (property) reasoning. The rules are
+specified in [docs/spec/proofs.md](docs/spec/proofs.md).
 
 Each claim in a `.theo` file carries natural-language text and a formula:
 
@@ -79,9 +85,9 @@ exit code 0 = success, 1 = invalid input, 2 = usage error.
 ```text
 theos-engine/
 ├── include/theos/   # Public headers
-├── src/core/        # Core library (lexer, parser, validator, exporter, binary format)
+├── src/core/        # Core library (lexer, parser, validator, logic checker, exporter, binary format)
 ├── src/cli/         # theosc command-line tool
-├── docs/spec/       # Language and binary format specifications
+├── docs/spec/       # Language, proof rules and binary format specifications
 ├── examples/        # Sample .theo arguments
 ├── fuzz/            # libFuzzer targets and seed corpora
 └── tests/           # Catch2 unit tests and golden files
