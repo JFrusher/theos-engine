@@ -22,7 +22,8 @@ std::string render(const Diagnostic& diag, std::string_view source) {
 
     const size_t line_start = source.rfind('\n', diag.span.offset == 0 ? 0 : diag.span.offset - 1);
     const size_t begin = (line_start == std::string_view::npos || diag.span.offset == 0) ? 0 : line_start + 1;
-    const size_t end = std::min(source.find('\n', diag.span.offset), source.size());
+    size_t end = std::min(source.find('\n', diag.span.offset), source.size());
+    if (end > begin && source[end - 1] == '\r') --end;   // CRLF sources (Windows checkouts)
     const std::string_view line = source.substr(begin, end - begin);
 
     const size_t underline_bytes = std::min<size_t>(std::max<uint32_t>(diag.span.length, 1), end - diag.span.offset);

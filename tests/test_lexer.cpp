@@ -62,3 +62,11 @@ TEST_CASE("Unexpected character is reported with position", "[lexer]") {
 TEST_CASE("Unterminated block comment is an error", "[lexer]") {
     REQUIRE_FALSE(lex("/* never closed", "t.theo"));
 }
+
+TEST_CASE("Diagnostics on CRLF sources do not echo carriage returns", "[diagnostic]") {
+    const std::string src = "premise P1 {\r\n  text: \"a\r\n}\r\n";
+    auto toks = lex(src, "crlf.theo");
+    REQUIRE_FALSE(toks);
+    const std::string out = render(toks.error(), src);
+    REQUIRE(out.find('\r') == std::string::npos);
+}
