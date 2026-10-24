@@ -15,7 +15,8 @@ Theos bridges this gap. It provides a deterministic pipeline to turn human-reada
 ## Pipeline
 
 ```
-.theo source ─► Lexer ─► Parser ─► AST ─► Validator ─► Mermaid exporter
+.theo source ─► Lexer ─► Parser ─► AST ─► Validator ─┬─► Mermaid exporter
+                                                      └─► .theos binary (encode / decode)
 ```
 
 Each claim in a `.theo` file carries natural-language text and a formula:
@@ -45,11 +46,27 @@ The full language is specified in [docs/spec/language.md](docs/spec/language.md)
 
 ---
 
+## The `.theos` Binary Format
+
+`theosc build` compiles a checked argument into a `.theos` file, specified in
+[docs/spec/theos-v2.md](docs/spec/theos-v2.md):
+
+- PNG-style signature (`89 54 48 45 4F 0D 0A 1A`) that detects text-mode corruption
+- Tagged, CRC-32-protected chunks; unknown ancillary chunks are skipped, unknown critical chunks rejected
+- Fixed-width little-endian records referencing each other by index, for O(1) access
+- One deduplicated string table and one expression table with shared sub-formulas
+- A reader that bounds-checks every offset and index, fuzzed with libFuzzer in CI
+
+---
+
 ## CLI Usage
 
 ```sh
-theosc check  examples/aquinas_first_way.theo
-theosc export examples/resurrection.theo --format mermaid -o resurrection.mmd
+theosc check   examples/aquinas_first_way.theo
+theosc export  examples/resurrection.theo --format mermaid -o resurrection.mmd
+theosc build   examples/resurrection.theo -o resurrection.theos
+theosc inspect resurrection.theos            # decoded argument
+theosc inspect resurrection.theos --chunks   # chunk table and hex view
 ```
 
 Diagnostics go to stderr as `file:line:col: error: message` with the source line underneath;
@@ -62,10 +79,11 @@ exit code 0 = success, 1 = invalid input, 2 = usage error.
 ```text
 theos-engine/
 ├── include/theos/   # Public headers
-├── src/core/        # Core library (lexer, parser, validator, exporter)
+├── src/core/        # Core library (lexer, parser, validator, exporter, binary format)
 ├── src/cli/         # theosc command-line tool
-├── docs/spec/       # Language specification
+├── docs/spec/       # Language and binary format specifications
 ├── examples/        # Sample .theo arguments
+├── fuzz/            # libFuzzer targets and seed corpora
 └── tests/           # Catch2 unit tests and golden files
 ```
 
@@ -73,7 +91,7 @@ theos-engine/
 
 ## Building from Source
 
-Requires CMake 3.20+ and a C++23 compiler (GCC 13+, Clang 18+, or MinGW-w64 GCC 13+ via MSYS2).
+Requires CMake 3.20+ and a C++23 compiler (GCC 13+, Clang 19+, or MinGW-w64 GCC 13+ via MSYS2).
 Tests use Catch2, fetched automatically by CMake.
 
 ```sh
@@ -82,6 +100,9 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ./build/theosc
 ```
+
+Fuzzing (Clang 19+): `cmake -B build-fuzz -DCMAKE_CXX_COMPILER=clang++-19 -DTHEOS_FUZZ=ON -DTHEOS_BUILD_TESTS=OFF`,
+then `./build-fuzz/fuzz/decode_fuzzer fuzz/corpus/decode`.
 
 On Windows, run the same commands from an MSYS2 UCRT64 shell (add `-G "MinGW Makefiles"` or `-G Ninja` if needed).
 

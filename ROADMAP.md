@@ -259,4 +259,5 @@ Answers to the original open questions (2026-10-24) and decisions made while bui
 | Phase | Status |
 |-------|--------|
 | 0 Foundation | done |
-| 1 Language v2 | done — formulas are fully parsed already (needed to find where they end); the v1 binary format was removed here rather than in M2.2 because it was tied to the old AST; syntax errors stop at the first error, static-rule errors are all reported; Clang builds use libc++ because libstdc++ 13 hides `std::expected` from Clang 18 |
+| 1 Language v2 | done — formulas are fully parsed already (needed to find where they end); the v1 binary format was removed here rather than in M2.2 because it was tied to the old AST; syntax errors stop at the first error, static-rule errors are all reported; Clang CI uses Clang 19, the first Clang that can use `std::expected` from libstdc++ 13 |
+| 2 Binary v2 | done — formulas, proofs and objections are serialized here (M3.4 folded in, since the AST already carries them); padding must be zero so every single-byte corruption is detected (verified by flipping every byte); nesting depth is capped in parser (256) and decoder (512) |

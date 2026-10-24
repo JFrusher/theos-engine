@@ -280,6 +280,7 @@ private:
     }
 
     AST::ProofItem subproof() {
+        DepthGuard guard(*this);
         AST::Subproof sub;
         sub.span = peek().span;
         sub.strict = accept_keyword("box");
@@ -328,7 +329,10 @@ private:
 
     // ---- formulas ----
 
-    ExprPtr formula() { return iff(); }
+    ExprPtr formula() {
+        DepthGuard guard(*this);
+        return iff();
+    }
 
     ExprPtr iff() {
         auto lhs = implies();
@@ -341,6 +345,7 @@ private:
     }
 
     ExprPtr implies() {
+        DepthGuard guard(*this);
         auto lhs = disjunction();
         if (at(Tok::Implies)) {
             advance();
@@ -378,6 +383,7 @@ private:
     }
 
     ExprPtr unary() {
+        DepthGuard guard(*this);
         const Span start = peek().span;
         if (accept(Tok::Not)) {
             auto e = unary();
@@ -471,9 +477,24 @@ private:
         return make_binder(ExprKind::Lambda, b.name, b.sort, body, join(start, body->span));
     }
 
+    // Bounds recursion so hostile input cannot exhaust the stack
+    class DepthGuard {
+    public:
+        explicit DepthGuard(Parser& p) : p_(p) {
+            if (++p_.depth_ > MAX_DEPTH) p_.fail(p_.peek().span, "nesting too deep (limit " + std::to_string(MAX_DEPTH) + ")");
+        }
+        ~DepthGuard() { --p_.depth_; }
+
+    private:
+        Parser& p_;
+    };
+
+    static constexpr size_t MAX_DEPTH = 256;
+
     std::vector<Token> toks_;
     std::string file_;
     size_t pos_ = 0;
+    size_t depth_ = 0;
 };
 
 } // namespace

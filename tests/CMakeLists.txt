@@ -6,6 +6,7 @@ FetchContent_Declare(Catch2
 FetchContent_MakeAvailable(Catch2)
 
 add_executable(theos_tests
+    test_binary.cpp
     test_canon.cpp
     test_exporter.cpp
     test_golden.cpp
