@@ -79,12 +79,13 @@ See [web/README.md](web/README.md) to build them locally.
 ## CLI Usage
 
 ```sh
-theosc check   examples/aquinas_first_way.theo
-theosc export  examples/resurrection.theo --format mermaid -o resurrection.mmd
-theosc build   examples/resurrection.theo -o resurrection.theos
+theosc check   library/arguments/aquinas_first_way.theo
+theosc check   examples/affirming_the_consequent.theo     # rejected, with a counterexample
+theosc export  library/arguments/resurrection.theo --format mermaid -o resurrection.mmd
+theosc build   library/arguments/resurrection.theo -o resurrection.theos
 theosc inspect resurrection.theos            # decoded argument
 theosc inspect resurrection.theos --chunks   # chunk table and hex view
-theosc site    examples -o site/gallery      # static gallery pages
+theosc site    library/arguments -o site/gallery   # static gallery pages
 ```
 
 Diagnostics go to stderr as `file:line:col: error: message` with the source line underneath;
@@ -102,7 +103,8 @@ theos-engine/
 ├── src/wasm/        # WebAssembly entry point for the playground
 ├── web/             # Playground, gallery styles, site assembly
 ├── docs/spec/       # Language, proof rules and binary format specifications
-├── examples/        # Sample .theo arguments
+├── examples/        # Small teaching examples
+├── library/         # Formalized arguments (the gallery)
 ├── fuzz/            # libFuzzer targets and seed corpora
 └── tests/           # Catch2 unit tests and golden files
 ```

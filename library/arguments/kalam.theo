@@ -1,0 +1,68 @@
+// The kalam cosmological argument in its modern form. The step from "has a
+// cause" to "has a transcendent cause" is made explicit as premise P3.
+
+argument "The Kalam Cosmological Argument" by "William Lane Craig, after al-Ghazali"
+
+axiom Ghazali  = source("al-Ghazali, The Incoherence of the Philosophers", "First Discussion")
+axiom Craig    = source("William Lane Craig, The Kalam Cosmological Argument", "Part II")
+axiom ExNihilo = principle("Nothing comes from nothing.")
+axiom Gen1     = scripture(protestant, "Genesis 1:1")
+
+premise P1 grounded_by [ExNihilo] {
+    text:    "Whatever begins to exist has a cause."
+    formula: forall x. Began(x) -> exists y. Causes(y, x)
+}
+
+premise P2 grounded_by [Ghazali, Craig, Gen1] {
+    text:    "The universe began to exist."
+    formula: Began(universe)
+}
+
+deduction D1 from [P1, P2] {
+    text:    "Therefore the universe has a cause."
+    formula: exists y. Causes(y, universe)
+    proof {
+        1. forall x. Began(x) -> exists y. Causes(y, x)          premise P1
+        2. Began(universe)                                        premise P2
+        3. Began(universe) -> exists y. Causes(y, universe)       forall_e 1
+        4. exists y. Causes(y, universe)                          imp_e 3, 2
+    }
+}
+
+premise P3 grounded_by [Craig] {
+    text:    "A cause of all of space and time is itself beyond space and time."
+    formula: forall y. Causes(y, universe) -> Transcendent(y)
+}
+
+conclusion C1 from [D1, P3] {
+    text:    "Therefore the universe has a transcendent cause."
+    formula: exists y. (Causes(y, universe) & Transcendent(y))
+    proof {
+        1. exists y. Causes(y, universe)                          premise D1
+        2. forall y. Causes(y, universe) -> Transcendent(y)       premise P3
+        { [c]
+            3. Causes(c, universe)                                assume
+            4. Causes(c, universe) -> Transcendent(c)             forall_e 2
+            5. Transcendent(c)                                    imp_e 4, 3
+            6. Causes(c, universe) & Transcendent(c)              and_i 3, 5
+            7. exists y. (Causes(y, universe) & Transcendent(y))  exists_i 6
+        }
+        8. exists y. (Causes(y, universe) & Transcendent(y))      exists_e 1, 3-7
+    }
+}
+
+objection O1 against P1 {
+    text: "Quantum events, such as radioactive decay, seem to begin without a cause."
+}
+
+reply R1 to O1 {
+    text: "Quantum events arise within a vacuum governed by physical law, which is not nothing; P1 concerns coming into being from nothing."
+}
+
+objection O2 against P2 {
+    text: "The universe might have an infinite past, so it never began."
+}
+
+reply R2 to O2 {
+    text: "A series of past events formed by successive addition cannot be actually infinite, since an infinite cannot be traversed one step at a time."
+}

@@ -38,6 +38,7 @@ add_library(theos_core STATIC
     src/core/proof_checker.cpp
     src/core/site.cpp
     src/core/truth_table.cpp
+    src/core/types.cpp
     src/core/validator.cpp
 )
 target_include_directories(theos_core PUBLIC include)

@@ -13,6 +13,7 @@ add_executable(theos_tests
     test_lexer.cpp
     test_parser.cpp
     test_proofs.cpp
+    test_types.cpp
     test_validator.cpp
 )
 target_link_libraries(theos_tests PRIVATE theos_core theos_warnings Catch2::Catch2WithMain)

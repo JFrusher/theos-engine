@@ -1,0 +1,20 @@
+// The smallest complete argument: two premises and a single rule.
+
+argument "Modus Ponens"
+
+axiom Obs = source("Field notes", "p. 4")
+
+premise P1 grounded_by [Obs] {
+    text:    "If it rains, the street is wet."
+    formula: Rain -> Wet
+}
+
+premise P2 grounded_by [Obs] {
+    text:    "It rains."
+    formula: Rain
+}
+
+conclusion C1 from [P1, P2] by imp_e {
+    text:    "The street is wet."
+    formula: Wet
+}

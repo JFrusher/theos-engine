@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include "theos/driver.hpp"
+#include <filesystem>
 
 using namespace Theos;
 
@@ -99,11 +100,16 @@ axiom C = scripture(lutheran, "John 1:1")
     REQUIRE(has(r.diagnostics, Severity::Error, "unknown canon 'lutheran'"));
 }
 
-TEST_CASE("Examples validate", "[validator][examples]") {
-    for (const char* name : {"aquinas_first_way", "resurrection"}) {
-        auto r = Driver::check_file(std::string(THEOS_SOURCE_DIR) + "/examples/" + name + ".theo");
-        INFO(Driver::render_diagnostics(r));
-        REQUIRE(r.ok());
+TEST_CASE("Library arguments and examples check", "[validator][examples]") {
+    namespace fs = std::filesystem;
+    for (const char* dir : {"library/arguments", "examples"}) {
+        for (const auto& e : fs::directory_iterator(fs::path(THEOS_SOURCE_DIR) / dir)) {
+            if (e.path().extension() != ".theo") continue;
+            auto r = Driver::check_file(e.path().string());
+            INFO(e.path().string() << "\n" << Driver::render_diagnostics(r));
+            // affirming_the_consequent.theo is invalid on purpose
+            REQUIRE(r.ok() == (e.path().stem() != "affirming_the_consequent"));
+        }
     }
 }
 
