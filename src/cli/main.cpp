@@ -1,5 +1,9 @@
+#include "theos/binary.hpp"
 #include "theos/driver.hpp"
 #include "theos/exporter.hpp"
+#include <cstdio>
+#include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -14,14 +18,17 @@ constexpr const char* usage =
     "theosc - the Theos argument compiler\n"
     "\n"
     "Usage:\n"
-    "  theosc check  <file.theo>\n"
-    "  theosc export <file.theo> --format mermaid [-o <out>]\n";
+    "  theosc check   <file.theo>\n"
+    "  theosc export  <file.theo> --format mermaid [-o <out>]\n"
+    "  theosc build   <file.theo> [-o <out.theos>]\n"
+    "  theosc inspect <file.theos> [--chunks]\n";
 
 struct Args {
     std::string command;
     std::string input;
     std::string format;
     std::string output;
+    bool chunks = false;
 };
 
 std::optional<Args> parse_args(int argc, char* argv[]) {
@@ -32,6 +39,7 @@ std::optional<Args> parse_args(int argc, char* argv[]) {
         const std::string arg = argv[i];
         if (arg == "--format" && i + 1 < argc) a.format = argv[++i];
         else if (arg == "-o" && i + 1 < argc) a.output = argv[++i];
+        else if (arg == "--chunks") a.chunks = true;
         else if (a.input.empty() && !arg.starts_with("-")) a.input = arg;
         else return std::nullopt;
     }
@@ -39,18 +47,79 @@ std::optional<Args> parse_args(int argc, char* argv[]) {
     return a;
 }
 
-void write_output(const std::string& path, const std::string& content) {
+std::vector<std::byte> read_bytes(const std::string& path) {
+    std::ifstream in(path, std::ios::binary);
+    if (!in) throw std::runtime_error("cannot open '" + path + "'");
+    std::vector<char> chars{std::istreambuf_iterator<char>(in), {}};
+    std::vector<std::byte> bytes(chars.size());
+    std::memcpy(bytes.data(), chars.data(), chars.size());
+    return bytes;
+}
+
+void write_bytes(const std::string& path, std::span<const std::byte> bytes) {
+    std::ofstream out(path, std::ios::binary);
+    if (!out) throw std::runtime_error("cannot write '" + path + "'");
+    out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+}
+
+void write_text(const std::string& path, const std::string& content) {
     if (path.empty()) {
         std::cout << content;
         return;
     }
-    std::ofstream out(path, std::ios::binary);
-    if (!out) throw std::runtime_error("cannot write '" + path + "'");
-    out << content;
+    write_bytes(path, std::as_bytes(std::span(content)));
+}
+
+std::string hex(uint32_t v, int width) {
+    char buf[16];
+    std::snprintf(buf, sizeof buf, "%0*X", width, v);
+    return buf;
+}
+
+std::string hex_dump(std::span<const std::byte> bytes, uint32_t base) {
+    std::string out;
+    for (size_t row = 0; row < bytes.size(); row += 16) {
+        out += "    " + hex(static_cast<uint32_t>(base + row), 8) + "  ";
+        std::string ascii;
+        for (size_t i = row; i < row + 16; ++i) {
+            if (i < bytes.size()) {
+                const auto b = static_cast<uint8_t>(bytes[i]);
+                out += hex(b, 2) + " ";
+                ascii += (b >= 0x20 && b < 0x7F) ? static_cast<char>(b) : '.';
+            } else {
+                out += "   ";
+            }
+        }
+        out += " " + ascii + "\n";
+    }
+    return out;
+}
+
+int inspect(const Args& args) {
+    const auto bytes = read_bytes(args.input);
+    if (!args.chunks) {
+        std::cout << Theos::AST::dump(Theos::Binary::decode(bytes));
+        return 0;
+    }
+    const auto info = Theos::Binary::describe(bytes);
+    std::cout << ".theos v" << info.version_major << "." << info.version_minor << ", " << info.file_size << " bytes, "
+              << info.chunks.size() << " chunks\n\n";
+    std::cout << hex_dump(std::span(bytes).first(24), 0) << "\n";
+    std::cout << "  tag   offset    length  crc       status\n";
+    for (const auto& c : info.chunks) {
+        std::cout << "  " << c.tag << "  " << hex(c.offset, 8) << "  " << std::to_string(c.length) << std::string(8 - std::min<size_t>(8, std::to_string(c.length).size()), ' ')
+                  << hex(c.crc, 8) << "  " << (c.crc_ok ? "ok" : "CORRUPT") << "\n";
+    }
+    for (const auto& c : info.chunks) {
+        std::cout << "\n  " << c.tag << "\n" << hex_dump(std::span(bytes).subspan(c.offset, 12 + std::min<size_t>(c.length, 64)), c.offset);
+        if (c.length > 64) std::cout << "    ... " << (c.length - 64) << " more bytes\n";
+    }
+    return 0;
 }
 
 int run(const Args& args) {
-    if (args.command != "check" && args.command != "export") return EXIT_USAGE;
+    if (args.command == "inspect") return inspect(args);
+    if (args.command != "check" && args.command != "export" && args.command != "build") return EXIT_USAGE;
     if (args.command == "export" && args.format != "mermaid") return EXIT_USAGE;
 
     auto result = Theos::Driver::check_file(args.input);
@@ -61,7 +130,14 @@ int run(const Args& args) {
         std::cerr << args.input << ": ok\n";
         return 0;
     }
-    write_output(args.output, Theos::Exporter::to_mermaid(*result.doc));
+    if (args.command == "build") {
+        const std::string out = args.output.empty()
+                                    ? std::filesystem::path(args.input).replace_extension(".theos").string()
+                                    : args.output;
+        write_bytes(out, Theos::Binary::encode(*result.doc));
+        return 0;
+    }
+    write_text(args.output, Theos::Exporter::to_mermaid(*result.doc));
     return 0;
 }
 

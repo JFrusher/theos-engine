@@ -48,3 +48,11 @@ Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 /build*/
+!/tests/golden/**/*.theos
+!/fuzz/corpus/**/*.theos
+
+# libFuzzer artifacts
+crash-*
+leak-*
+timeout-*
+oom-*

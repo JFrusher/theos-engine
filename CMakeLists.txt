@@ -16,8 +16,16 @@ if(MINGW)
     add_link_options(-static -static-libstdc++ -static-libgcc)
 endif()
 
+# Fuzz builds instrument everything so the fuzzers see coverage inside the library
+option(THEOS_FUZZ "Build libFuzzer targets (Clang only)" OFF)
+if(THEOS_FUZZ)
+    add_compile_options(-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=all)
+    add_link_options(-fsanitize=address,undefined)
+endif()
+
 add_library(theos_core STATIC
     src/core/ast.cpp
+    src/core/binary.cpp
     src/core/canon.cpp
     src/core/diagnostic.cpp
     src/core/driver.cpp
@@ -32,6 +40,10 @@ target_link_libraries(theos_core PRIVATE theos_warnings)
 
 add_executable(theosc src/cli/main.cpp)
 target_link_libraries(theosc PRIVATE theos_core theos_warnings)
+
+if(THEOS_FUZZ)
+    add_subdirectory(fuzz)
+endif()
 
 option(THEOS_BUILD_TESTS "Build the test suite" ON)
 if(THEOS_BUILD_TESTS)
