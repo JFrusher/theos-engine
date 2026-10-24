@@ -36,11 +36,24 @@ add_library(theos_core STATIC
     src/core/logic.cpp
     src/core/parser.cpp
     src/core/proof_checker.cpp
+    src/core/site.cpp
     src/core/truth_table.cpp
     src/core/validator.cpp
 )
 target_include_directories(theos_core PUBLIC include)
 target_link_libraries(theos_core PRIVATE theos_warnings)
+
+if(EMSCRIPTEN)
+    # Browser build: emcmake cmake -B build-wasm -DTHEOS_BUILD_TESTS=OFF && cmake --build build-wasm
+    target_compile_options(theos_core PRIVATE -fwasm-exceptions)
+    add_executable(theos_wasm src/wasm/theos_wasm.cpp)
+    target_compile_options(theos_wasm PRIVATE -fwasm-exceptions)
+    target_link_libraries(theos_wasm PRIVATE theos_core theos_warnings embind)
+    target_link_options(theos_wasm PRIVATE -fwasm-exceptions -sMODULARIZE=1 -sEXPORT_NAME=createTheos
+                        -sENVIRONMENT=web,node -sALLOW_MEMORY_GROWTH=1)
+    set_target_properties(theos_wasm PROPERTIES OUTPUT_NAME theos RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/web/dist)
+    return()
+endif()
 
 add_executable(theosc src/cli/main.cpp)
 target_link_libraries(theosc PRIVATE theos_core theos_warnings)

@@ -1,0 +1,52 @@
+name: Web
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.74
+      - name: Build theosc
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DTHEOS_BUILD_TESTS=OFF
+          cmake --build build
+      - name: Build WebAssembly
+        run: |
+          emcmake cmake -B build-wasm -G Ninja -DCMAKE_BUILD_TYPE=Release -DTHEOS_BUILD_TESTS=OFF
+          cmake --build build-wasm
+      - name: WebAssembly smoke test
+        run: node tests/web/wasm_smoke.cjs
+      - name: Assemble site
+        run: web/build-site.sh ./build/theosc site
+      - name: Browser smoke test
+        run: |
+          npm install --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+          node tests/web/playground_smoke.cjs site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

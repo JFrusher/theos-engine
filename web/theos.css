@@ -1,0 +1,70 @@
+/* Theos — shared by the playground and the gallery. Palette drawn from manuscript pigments. */
+:root {
+    --vellum: #f3f4f1;
+    --ink: #23212b;
+    --ink-soft: #565463;
+    --lapis: #1f4e9c;
+    --rubric: #b3261e;
+    --gold: #a8842a;
+    --rule: #c9ccc6;
+    --surface: #ffffff;
+    --page: var(--vellum);
+    --font-display: "IM Fell English", Georgia, serif;
+    --font-ui: "Alegreya Sans", "Segoe UI", sans-serif;
+    --font-code: "JetBrains Mono", Consolas, monospace;
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --vellum: #1c1b22;
+        --ink: #e7e6ea;
+        --ink-soft: #a9a7b4;
+        --lapis: #8fb0ea;
+        --rubric: #f08a80;
+        --gold: #d9b95b;
+        --rule: #3a3944;
+        --surface: #24232b;
+        color-scheme: dark;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--vellum);
+    color: var(--ink);
+    font: 17px/1.5 var(--font-ui);
+}
+
+a { color: var(--lapis); }
+a:focus-visible, button:focus-visible, select:focus-visible, li[tabindex]:focus-visible {
+    outline: 3px solid var(--lapis);
+    outline-offset: 2px;
+}
+
+code, .formula { font-family: var(--font-code); font-size: 0.9em; }
+
+/* The page: graph and gloss always sit on lit vellum, even in dark mode */
+.page {
+    background: #f3f4f1;
+    color: #23212b;
+    --ink: #23212b;
+    --ink-soft: #565463;
+    --lapis: #1f4e9c;
+    --rubric: #b3261e;
+    --gold: #a8842a;
+    --rule: #c9ccc6;
+}
+
+.verdict {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 3.2vw, 2.8rem);
+    line-height: 1.1;
+    margin: 0;
+    color: var(--lapis);
+}
+.verdict.fails { color: var(--rubric); }
+.verdict-detail { margin: 0.4rem 0 0; color: var(--ink-soft); max-width: 60ch; }
+

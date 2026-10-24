@@ -1,0 +1,53 @@
+main.argument, main.gallery { max-width: 68rem; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+main.argument nav, main.gallery nav { margin-bottom: 1.5rem; }
+main h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1.05; margin: 0; }
+main h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; margin: 2.5rem 0 0.75rem; }
+.author { color: var(--ink-soft); margin: 0.25rem 0 1.25rem; }
+main.argument .verdict { margin-top: 1rem; }
+.lede { max-width: 60ch; color: var(--ink-soft); }
+
+.entries { list-style: none; padding: 0; margin: 2rem 0 0; }
+.entries li { padding: 1rem 0; border-top: 1px solid var(--rule); }
+.entries a { font-family: var(--font-display); font-size: 1.5rem; text-decoration: none; }
+.entries a:hover { text-decoration: underline; }
+.entries p { margin: 0.25rem 0 0; max-width: 65ch; }
+.status { font-size: 0.9rem; margin-left: 0.5rem; }
+.status.holds { color: var(--lapis); }
+.status.fails { color: var(--rubric); }
+
+.axioms, .definitions { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1.25rem; }
+.axioms dt { color: var(--gold); font-weight: 700; }
+.axioms dd, .definitions dd { margin: 0; }
+.canon { color: var(--ink-soft); }
+
+.claim { max-width: 72ch; padding: 0.9rem 0 0.9rem 1.1rem; border-left: 3px solid var(--rule); margin: 0 0 0.75rem; }
+.claim.premise { border-left-color: var(--lapis); }
+.claim.conclusion { border-left-color: var(--lapis); border-left-width: 6px; }
+.claim.objection { border-left-color: var(--rubric); }
+.claim.reply { border-left-color: var(--gold); }
+.claim h3 { margin: 0; font-weight: 500; color: var(--ink-soft); font-size: 1rem; }
+.claim .id { font-family: var(--font-display); font-size: 1.35rem; color: var(--ink); margin-right: 0.35rem; }
+.claim p { margin: 0.3rem 0; }
+.basis { color: var(--ink-soft); font-size: 0.95rem; }
+
+/* Fitch proofs: one vertical bar per open subproof (double for strict), assumptions underlined */
+.proof { margin-top: 0.5rem; }
+.proof summary { cursor: pointer; color: var(--lapis); }
+.pl { display: grid; grid-template-columns: 2.5rem 1fr auto; gap: 0 0.75rem; }
+.pl .n { color: var(--ink-soft); text-align: right; padding: 0.15rem 0; }
+.pl .body { display: flex; align-items: stretch; min-width: 0; }
+.pl .bar { flex: none; width: 1rem; border-left: 2px solid var(--lapis); }
+.pl .bar.strict { border-left: 4px double var(--lapis); }
+.pl .tag { color: var(--lapis); font-family: var(--font-code); font-size: 0.8rem; margin-right: 0.4rem; padding-top: 0.2rem; }
+.pl .formula { padding: 0.15rem 0; }
+.pl .formula.assumption { border-bottom: 1px solid var(--lapis); align-self: flex-start; }
+.pl .j { color: var(--ink-soft); font-size: 0.9rem; padding: 0.15rem 0; white-space: nowrap; }
+
+.diagnostics { background: var(--surface); border-left: 3px solid var(--rubric); padding: 1rem; overflow-x: auto; font-family: var(--font-code); font-size: 0.85rem; }
+.graph { background: #f3f4f1; padding: 1rem; overflow-x: auto; }
+
+@media (max-width: 640px) {
+    .pl { grid-template-columns: 2rem 1fr; }
+    .pl .j { grid-column: 2; }
+    .axioms, .definitions { grid-template-columns: 1fr; }
+}

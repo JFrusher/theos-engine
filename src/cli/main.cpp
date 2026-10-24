@@ -1,6 +1,8 @@
 #include "theos/binary.hpp"
 #include "theos/driver.hpp"
 #include "theos/exporter.hpp"
+#include "theos/site.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -21,11 +23,13 @@ constexpr const char* usage =
     "  theosc check   <file.theo>\n"
     "  theosc export  <file.theo> --format mermaid [-o <out>]\n"
     "  theosc build   <file.theo> [-o <out.theos>]\n"
-    "  theosc inspect <file.theos> [--chunks]\n";
+    "  theosc inspect <file.theos> [--chunks]\n"
+    "  theosc site    <file-or-dir>... -o <out-dir>\n";
 
 struct Args {
     std::string command;
     std::string input;
+    std::vector<std::string> extra_inputs;   // site accepts several
     std::string format;
     std::string output;
     bool chunks = false;
@@ -41,6 +45,7 @@ std::optional<Args> parse_args(int argc, char* argv[]) {
         else if (arg == "-o" && i + 1 < argc) a.output = argv[++i];
         else if (arg == "--chunks") a.chunks = true;
         else if (a.input.empty() && !arg.starts_with("-")) a.input = arg;
+        else if (a.command == "site" && !arg.starts_with("-")) a.extra_inputs.push_back(arg);
         else return std::nullopt;
     }
     if (a.input.empty()) return std::nullopt;
@@ -117,8 +122,48 @@ int inspect(const Args& args) {
     return 0;
 }
 
+std::string read_text(const std::filesystem::path& p) {
+    const auto bytes = read_bytes(p.string());
+    return std::string(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+}
+
+int site(const Args& args) {
+    namespace fs = std::filesystem;
+    if (args.output.empty()) return EXIT_USAGE;
+    std::vector<fs::path> files;
+    std::vector<std::string> inputs = args.extra_inputs;
+    inputs.insert(inputs.begin(), args.input);
+    for (const auto& in : inputs) {
+        if (fs::is_directory(in)) {
+            for (const auto& e : fs::recursive_directory_iterator(in)) {
+                if (e.path().extension() == ".theo") files.push_back(e.path());
+            }
+        } else {
+            files.emplace_back(in);
+        }
+    }
+    std::ranges::sort(files);
+
+    fs::create_directories(args.output);
+    std::vector<Theos::Site::Entry> entries;
+    int failures = 0;
+    for (const auto& f : files) {
+        Theos::Site::Entry e{f.stem().string(), Theos::Driver::check_file(f.string()), read_text(f)};
+        if (!e.result.ok()) {
+            ++failures;
+            std::cerr << Theos::Driver::render_diagnostics(e.result);
+        }
+        write_text((fs::path(args.output) / (e.slug + ".html")).string(), Theos::Site::argument_page(e));
+        entries.push_back(std::move(e));
+    }
+    write_text((fs::path(args.output) / "index.html").string(), Theos::Site::index_page(entries));
+    std::cerr << "wrote " << entries.size() << " argument pages to " << args.output << "\n";
+    return failures ? EXIT_INVALID : 0;
+}
+
 int run(const Args& args) {
     if (args.command == "inspect") return inspect(args);
+    if (args.command == "site") return site(args);
     if (args.command != "check" && args.command != "export" && args.command != "build") return EXIT_USAGE;
     if (args.command == "export" && args.format != "mermaid") return EXIT_USAGE;
 

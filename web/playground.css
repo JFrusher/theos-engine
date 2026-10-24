@@ -1,0 +1,73 @@
+.bar {
+    display: flex;
+    align-items: baseline;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    padding: 0.9rem 1.5rem;
+    border-bottom: 1px solid var(--rule);
+}
+.wordmark {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 2rem;
+    margin: 0;
+    line-height: 1;
+}
+.tagline { margin: 0; color: var(--ink-soft); flex: 1; min-width: 12rem; }
+.picker { display: flex; gap: 0.5rem; align-items: baseline; color: var(--ink-soft); }
+.picker select {
+    font: inherit;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 0.2rem 0.4rem;
+}
+.nav { font-weight: 500; }
+
+.workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    height: calc(100vh - 4.2rem);
+}
+.source { border-right: 1px solid var(--rule); min-height: 0; }
+.source .CodeMirror {
+    height: 100%;
+    font-family: var(--font-code);
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--ink);
+}
+.CodeMirror-gutters { background: var(--vellum); border-right: 1px solid var(--rule); }
+.CodeMirror-linenumber { color: var(--ink-soft); }
+.CodeMirror-cursor { border-left-color: var(--ink); }
+.cm-s-default .cm-keyword { color: var(--lapis); font-weight: 600; }
+.cm-s-default .cm-string { color: #5f7a2e; }
+.cm-s-default .cm-comment { color: var(--ink-soft); font-style: italic; }
+.cm-s-default .cm-operator { color: var(--gold); }
+.cm-s-default .cm-number { color: var(--ink-soft); }
+.line-error { background: rgba(179, 38, 30, 0.10); }
+.line-warning { background: rgba(168, 132, 42, 0.12); }
+
+.result { overflow: auto; padding: 1.75rem 2rem 3rem; }
+.graph { margin: 1.5rem 0; overflow-x: auto; }
+
+/* Diagnostics read as glosses in the margin, keyed to their line */
+.notes { list-style: none; margin: 0; padding: 0; max-width: 72ch; }
+.notes li {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--rule);
+    cursor: pointer;
+}
+.notes li:hover .where { text-decoration: underline; }
+.notes .where { font-family: var(--font-display); font-size: 1.05rem; color: var(--rubric); }
+.notes .warning .where { color: var(--gold); }
+
+@media (max-width: 800px) {
+    .workspace { grid-template-columns: 1fr; height: auto; }
+    .source { border-right: 0; border-bottom: 1px solid var(--rule); height: 55vh; }
+    .result { padding: 1.25rem 1rem 2rem; }
+}
