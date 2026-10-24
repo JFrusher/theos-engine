@@ -237,3 +237,28 @@ Warnings:
 Diagnostics are printed as `file:line:col: error: message`, followed by the
 source line and a caret under the offending token. Syntax errors stop parsing at
 the first error; static-rule errors are all reported.
+
+---
+
+## 6. Sorts
+
+Every name that is not bound by a quantifier or λ has exactly one type across
+the whole file (node formulas, proof lines, objections and definitions):
+
+| Type | How it arises |
+|------|---------------|
+| individual | used only as an argument, or in an identity |
+| proposition | applied to no arguments: `Rain` |
+| predicate | applied to arguments: `Moves(y, x)`; argument sorts are individual or property |
+| property | a one-place predicate over individuals, which may also appear as an argument: `G(x)` and `Positive(G)` |
+
+Bound variables have the sort their binder declares (`ind` by default,
+`prop` for properties). Errors:
+
+- a name used with different arities or argument sorts (`P(a)` and `P(a, b)`);
+- an individual variable applied as a predicate, or a property variable applied to anything but one individual;
+- a predicate of more than one place, or over properties, used as an argument;
+- an identity between properties;
+- a λ abstracting over anything but an individual.
+
+A defined name has the type given by its parameters.

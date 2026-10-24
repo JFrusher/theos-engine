@@ -22,7 +22,7 @@ AST::Document load(const fs::path& p) {
 
 std::vector<fs::path> valid_sources() {
     std::vector<fs::path> out;
-    for (const auto& e : fs::directory_iterator(fs::path(THEOS_SOURCE_DIR) / "examples")) {
+    for (const auto& e : fs::directory_iterator(fs::path(THEOS_SOURCE_DIR) / "library/arguments")) {
         if (e.path().extension() == ".theo") out.push_back(e.path());
     }
     out.push_back(fs::path(THEOS_SOURCE_DIR) / "tests/golden/binary/tiny.theo");
@@ -119,7 +119,7 @@ TEST_CASE("Golden binaries are byte-for-byte stable", "[binary][golden]") {
 }
 
 TEST_CASE("Every single-byte corruption is detected", "[binary]") {
-    const auto bytes = Binary::encode(load(fs::path(THEOS_SOURCE_DIR) / "examples/resurrection.theo"));
+    const auto bytes = Binary::encode(load(fs::path(THEOS_SOURCE_DIR) / "library/arguments/resurrection.theo"));
     for (size_t i = 0; i < bytes.size(); ++i) {
         auto corrupt = bytes;
         corrupt[i] ^= std::byte{0x20};

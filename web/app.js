@@ -2,8 +2,10 @@
 'use strict';
 
 const EXAMPLES = [
-  ['The First Way (Aquinas)', 'examples/aquinas_first_way.theo'],
-  ['Resurrection (minimal facts)', 'examples/resurrection.theo'],
+  ['Affirming the consequent (invalid)', 'examples/affirming_the_consequent.theo'],
+  ['The First Way (Aquinas)', 'library/arguments/aquinas_first_way.theo'],
+  ['The kalam cosmological argument', 'library/arguments/kalam.theo'],
+  ['Resurrection (minimal facts)', 'library/arguments/resurrection.theo'],
 ];
 
 const STARTER = `argument "Modus Ponens"

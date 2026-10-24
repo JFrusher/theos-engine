@@ -459,7 +459,7 @@ TEST_CASE("Quantifier side conditions are enforced", "[proofs][errors]") {
                   "is not an instance");
     // an individual variable cannot take a lambda
     require_error(argument({"forall x. Q(x)"}, "Q(\\y. P(y))", "1. forall x. Q(x) premise P1\n2. Q(\\y. P(y)) forall_e 1"),
-                  "cannot instantiate an individual variable with a lambda");
+                  "'Q' is used as a predicate of (property) here but as a property elsewhere");
     // identity substitution must be faithful
     require_error(argument({"P(a)", "a = b"}, "P(c)", "1. P(a) premise P1\n2. a = b premise P2\n3. P(c) eq_e 2, 1"), "eq_e needs");
 }

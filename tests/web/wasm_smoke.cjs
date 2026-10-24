@@ -8,7 +8,7 @@ const createTheos = require(path.join(__dirname, '../../web/dist/theos.js'));
 (async () => {
   const theos = await createTheos();
 
-  const good = JSON.parse(theos.check(fs.readFileSync(path.join(__dirname, '../../examples/aquinas_first_way.theo'), 'utf8')));
+  const good = JSON.parse(theos.check(fs.readFileSync(path.join(__dirname, '../../library/arguments/aquinas_first_way.theo'), 'utf8')));
   assert.equal(good.ok, true, good.rendered);
   assert.ok(good.mermaid.startsWith('flowchart TD'));
   assert.equal(good.nodes.length, 7);
