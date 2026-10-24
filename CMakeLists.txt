@@ -24,11 +24,13 @@ if(THEOS_FUZZ)
 endif()
 
 add_library(theos_core STATIC
+    src/core/analysis.cpp
     src/core/ast.cpp
     src/core/binary.cpp
     src/core/canon.cpp
     src/core/checker.cpp
     src/core/diagnostic.cpp
+    src/core/dialectic.cpp
     src/core/driver.cpp
     src/core/exporter.cpp
     src/core/expr.cpp
@@ -43,6 +45,11 @@ add_library(theos_core STATIC
     src/core/validator.cpp
 )
 target_include_directories(theos_core PUBLIC include)
+if(EMSCRIPTEN)
+    target_compile_definitions(theos_core PRIVATE THEOS_LIBRARY_DIR="/library")
+else()
+    target_compile_definitions(theos_core PRIVATE THEOS_LIBRARY_DIR="${PROJECT_SOURCE_DIR}/library")
+endif()
 target_link_libraries(theos_core PRIVATE theos_warnings)
 
 if(EMSCRIPTEN)
@@ -52,7 +59,8 @@ if(EMSCRIPTEN)
     target_compile_options(theos_wasm PRIVATE -fwasm-exceptions)
     target_link_libraries(theos_wasm PRIVATE theos_core theos_warnings embind)
     target_link_options(theos_wasm PRIVATE -fwasm-exceptions -sMODULARIZE=1 -sEXPORT_NAME=createTheos
-                        -sENVIRONMENT=web,node -sALLOW_MEMORY_GROWTH=1)
+                        -sENVIRONMENT=web,node -sALLOW_MEMORY_GROWTH=1
+                        --preload-file ${PROJECT_SOURCE_DIR}/library@/library)
     set_target_properties(theos_wasm PROPERTIES OUTPUT_NAME theos RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/web/dist)
     return()
 endif()

@@ -1,7 +1,9 @@
 // WebAssembly entry point for the playground: check(source) returns a JSON report
+#include "theos/dialectic.hpp"
 #include "theos/driver.hpp"
 #include "theos/exporter.hpp"
 #include <emscripten/bind.h>
+#include <algorithm>
 #include <string>
 
 namespace {
@@ -49,6 +51,16 @@ std::string check(const std::string& source) {
     if (r.doc) {
         std::string mermaid = Theos::Exporter::to_mermaid(*r.doc);
         mermaid += "    classDef invalid stroke:#d50000,stroke-width:4px;\n";
+        const auto ev = Theos::Dialectic::evaluate(*r.doc);
+        out += ",\"standing\":[";
+        bool first = true;
+        for (const auto& [node, objections] : ev.standing_objections) {
+            for (const auto& o : objections) {
+                out += (first ? "" : ",") + std::string("{\"objection\":") + json_string(o) + ",\"target\":" + json_string(node) + "}";
+                first = false;
+            }
+        }
+        out += "],\"objections\":" + std::to_string(std::ranges::count_if(r.doc->dialectics, [](const auto& d) { return d.kind == Theos::AST::DialecticKind::Objection; }));
         out += ",\"nodes\":[";
         for (size_t i = 0; i < r.doc->nodes.size(); ++i) {
             const auto& n = r.doc->nodes[i];
@@ -56,7 +68,7 @@ std::string check(const std::string& source) {
             if (bad) mermaid += "    class " + n.id + " invalid\n";
             out += (i ? "," : "") + std::string("{\"id\":") + json_string(n.id) + ",\"kind\":" + json_string(Theos::AST::to_string(n.kind)) +
                    ",\"text\":" + json_string(n.text) + ",\"formula\":" + json_string(Theos::print(*n.formula, Theos::Notation::Unicode)) +
-                   ",\"error\":" + (bad ? "true" : "false") + "}";
+                   ",\"error\":" + (bad ? "true" : "false") + ",\"status\":" + json_string(Theos::Dialectic::to_string(ev.nodes.at(n.id))) + "}";
         }
         out += "],\"mermaid\":" + json_string(mermaid);
     }

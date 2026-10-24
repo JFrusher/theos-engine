@@ -1,15 +1,14 @@
-full_document.theo:29:11: error: line 3: forall_e reference 1 must be a line number
+full_document.theo:28:11: error: line 3: forall_e reference 1 must be a line number
               3. Contingent(a) -> exists y. (Causes(y, a) & a != y)   forall_e P2
               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-full_document.theo:32:11: error: line 4: line 1 is outside the strict subproof and not fully modalized
+full_document.theo:31:11: error: line 4: line 1 is outside the strict subproof and not fully modalized
               4. []A  reit 1
               ^~~~~~~~~~~~~~
-full_document.theo:34:9: error: line 5: no closed subproof 2-4 is available here
+full_document.theo:33:9: error: line 5: no closed subproof 2-4 is available here
             5. exists x y. Causes(y, x)  exists_e 1, 2-4
             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ---
 argument "Golden" by "Tests"
-import "lib/shared"
 axiom S scripture catholic "Wisdom 13:1-9"
 axiom W source "Aristotle, Physics" "VIII.5"
 axiom N principle "Nothing comes from nothing."

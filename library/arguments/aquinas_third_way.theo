@@ -1,0 +1,80 @@
+// The Third Way (argument from possibility and necessity), Summa Theologiae
+// I, q.2, a.3. The famous quantifier-shift worry about P1 is recorded, with a
+// reply and a counter-reply, so the gallery shows where the debate stands.
+
+argument "The Third Way: Argument from Contingency" by "Thomas Aquinas"
+
+axiom ST = source("Thomas Aquinas, Summa Theologiae", "I, q.2, a.3")
+
+premise P1 grounded_by [ST] {
+    text:    "If everything could fail to exist, then at some time nothing existed."
+    formula: (forall x. Contingent(x)) -> NothingOnceExisted
+}
+
+premise P2 grounded_by [ST] {
+    text:    "If at some time nothing existed, nothing would exist now, since nothing comes from nothing."
+    formula: NothingOnceExisted -> ~exists x. ExistsNow(x)
+}
+
+premise P3 grounded_by [ST] {
+    text:    "Something exists now."
+    formula: exists x. ExistsNow(x)
+}
+
+deduction D1 from [P1, P2, P3] {
+    text:    "Therefore not everything is contingent: something exists necessarily."
+    formula: exists x. ~Contingent(x)
+    proof {
+        1. (forall x. Contingent(x)) -> NothingOnceExisted          premise P1
+        2. NothingOnceExisted -> ~exists x. ExistsNow(x)            premise P2
+        3. exists x. ExistsNow(x)                                   premise P3
+        {
+            4. NothingOnceExisted                                   assume
+            5. ~exists x. ExistsNow(x)                              imp_e 2, 4
+            6. bot                                                  not_e 3, 5
+        }
+        7. ~NothingOnceExisted                                      not_i 4-6
+        8. ~forall x. Contingent(x)                                 mt 1, 7
+        9. exists x. ~Contingent(x)                                 qn 8
+    }
+}
+
+premise P4 grounded_by [ST] {
+    text:    "Since necessary things cannot borrow their necessity from one another without end, some necessary being is necessary of itself."
+    formula: (exists x. ~Contingent(x)) -> exists x. NecessaryOfItself(x)
+}
+
+premise P5 grounded_by [ST] {
+    text:    "A being necessary of itself is what all call God."
+    formula: forall x. NecessaryOfItself(x) -> God(x)
+}
+
+conclusion C1 from [D1, P4, P5] {
+    text:    "Therefore God exists."
+    formula: exists x. God(x)
+    proof {
+        1. exists x. ~Contingent(x)                                     premise D1
+        2. (exists x. ~Contingent(x)) -> exists x. NecessaryOfItself(x)  premise P4
+        3. exists x. NecessaryOfItself(x)                               imp_e 2, 1
+        4. forall x. NecessaryOfItself(x) -> God(x)                     premise P5
+        { [n]
+            5. NecessaryOfItself(n)                                     assume
+            6. NecessaryOfItself(n) -> God(n)                           forall_e 4
+            7. God(n)                                                   imp_e 6, 5
+            8. exists x. God(x)                                         exists_i 7
+        }
+        9. exists x. God(x)                                             exists_e 3, 5-8
+    }
+}
+
+objection O1 against P1 {
+    text: "Quantifier shift: that each thing fails to exist at some time does not imply that there is a time at which everything fails to exist."
+}
+
+reply R1 to O1 {
+    text: "Over an infinite past every possibility of non-existence would be realized, and realized together."
+}
+
+reply R2 to R1 {
+    text: "Realized possibilities of non-existence need not coincide; an infinite past only guarantees each occurs at some time (Anthony Kenny, The Five Ways, ch. 4)."
+}

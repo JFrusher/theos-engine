@@ -13,7 +13,8 @@ main.argument .verdict { margin-top: 1rem; }
 .entries p { margin: 0.25rem 0 0; max-width: 65ch; }
 .status { font-size: 0.9rem; margin-left: 0.5rem; }
 .status.holds { color: var(--lapis); }
-.status.fails { color: var(--rubric); }
+.status.fails, .status.defeated { color: var(--rubric); }
+.status.undecided, .status.overruled { color: var(--ink-soft); }
 
 .axioms, .definitions { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1.25rem; }
 .axioms dt { color: var(--gold); font-weight: 700; }

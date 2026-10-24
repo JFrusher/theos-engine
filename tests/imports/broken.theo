@@ -1,0 +1,2 @@
+premise Bad { text: "x" formula: A }
+conclusion BadC from [Bad] { text: "y" formula: B }

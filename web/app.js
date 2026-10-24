@@ -75,20 +75,26 @@ function plural(n, word) {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
+function dialectic(report) {
+  if (!report.objections) return '';
+  if (!report.standing.length) return `${report.objections === 1 ? 'The objection is' : `All ${report.objections} objections are`} answered.`;
+  const contested = report.nodes.filter(n => n.kind === 'conclusion' && n.status !== 'accepted').map(n => n.id);
+  return [...report.standing.map(s => `Objection ${s.objection} stands against ${s.target}.`),
+          contested.length ? `So ${contested.join(', ')} ${contested.length === 1 ? 'is' : 'are'} contested.` : ''].join(' ').trim();
+}
+
 function showVerdict(report) {
   const errors = report.diagnostics.filter(d => d.severity === 'error');
   const warnings = report.diagnostics.length - errors.length;
   verdict.classList.toggle('fails', !report.ok);
   if (report.ok) {
-    verdict.textContent = 'The argument holds.';
-    detail.textContent = warnings
-      ? `Every inference is valid. ${plural(warnings, 'warning')} below.`
-      : 'Every inference is valid.';
+    verdict.textContent = 'The argument is valid.';
+    detail.textContent = `Every inference is valid. ${dialectic(report)}${warnings ? ` ${plural(warnings, 'warning')} below.` : ''}`;
   } else if (!report.mermaid) {
     verdict.textContent = 'The text could not be read.';
     detail.textContent = errors[0].message;
   } else {
-    verdict.textContent = 'The argument does not hold yet.';
+    verdict.textContent = 'The argument is not valid yet.';
     detail.textContent = `${plural(errors.length, 'problem')}${warnings ? `, ${plural(warnings, 'warning')}` : ''}. Select a note to jump to its line.`;
   }
 }
@@ -166,7 +172,8 @@ picker.addEventListener('change', () => {
 const shared = location.hash.startsWith('#src=') ? location.hash.slice(5) : null;
 editor.setValue(shared ? decodeSource(shared) : STARTER);
 
-createTheos().then(module => {
+// The bundled library (theos.data) sits next to the wasm in dist/
+createTheos({ locateFile: file => `dist/${file}` }).then(module => {
   theos = module;
   check();
 });

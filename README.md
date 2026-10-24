@@ -25,9 +25,15 @@ propositional inferences are decided by truth table and propositional modal ones
 propositional, first-order, identity, S5 modal and higher-order (property) reasoning. The rules are
 specified in [docs/spec/proofs.md](docs/spec/proofs.md).
 
-The library includes Aquinas's First Way, the kalam argument, Plantinga's modal ontological
-argument, and **Gödel's ontological argument in Scott's version**, every step of which is
-machine-checked in higher-order S5.
+The library (`library/arguments/`) holds ten formalized arguments: Aquinas's First and Third Ways,
+Anselm, the kalam argument, Leibniz's contingency argument, the moral argument, the resurrection,
+Plantinga's modal ontological argument, Mackie's logical problem of evil, and **Gödel's ontological
+argument in Scott's version**, every step of which is machine-checked in higher-order S5.
+Objections and replies are evaluated with Dung's grounded semantics, so each page shows which
+claims survive the recorded debate ([docs/spec/analysis.md](docs/spec/analysis.md)).
+
+Arguments can `import` each other and the standard library (`library/std/`), e.g.
+`import "std/principles"` for the principle of sufficient reason.
 
 Each claim in a `.theo` file carries natural-language text and a formula:
 
@@ -89,6 +95,7 @@ theosc export  library/arguments/resurrection.theo --format mermaid -o resurrect
 theosc build   library/arguments/resurrection.theo -o resurrection.theos
 theosc inspect resurrection.theos            # decoded argument
 theosc inspect resurrection.theos --chunks   # chunk table and hex view
+theosc analyze library/arguments/*.theo            # dependencies, unused citations, objections
 theosc site    library/arguments -o site/gallery   # static gallery pages
 ```
 

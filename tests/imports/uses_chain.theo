@@ -1,0 +1,3 @@
+argument "Uses a chain of imports"
+import "middle"
+conclusion C1 from [Shared, Extra] { text: "A and C." formula: A & C }

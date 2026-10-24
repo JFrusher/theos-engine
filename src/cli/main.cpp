@@ -1,3 +1,4 @@
+#include "theos/analysis.hpp"
 #include "theos/binary.hpp"
 #include "theos/driver.hpp"
 #include "theos/exporter.hpp"
@@ -24,12 +25,17 @@ constexpr const char* usage =
     "  theosc export  <file.theo> --format mermaid [-o <out>]\n"
     "  theosc build   <file.theo> [-o <out.theos>]\n"
     "  theosc inspect <file.theos> [--chunks]\n"
-    "  theosc site    <file-or-dir>... -o <out-dir>\n";
+    "  theosc analyze <file.theo>...\n"
+    "  theosc site    <file-or-dir>... -o <out-dir>\n"
+    "\n"
+    "Options:\n"
+    "  -L <dir>   also search <dir> for imports (repeatable)\n";
 
 struct Args {
     std::string command;
     std::string input;
     std::vector<std::string> extra_inputs;   // site accepts several
+    Theos::Driver::Options options;
     std::string format;
     std::string output;
     bool chunks = false;
@@ -44,8 +50,9 @@ std::optional<Args> parse_args(int argc, char* argv[]) {
         if (arg == "--format" && i + 1 < argc) a.format = argv[++i];
         else if (arg == "-o" && i + 1 < argc) a.output = argv[++i];
         else if (arg == "--chunks") a.chunks = true;
+        else if (arg == "-L" && i + 1 < argc) a.options.library_dirs.push_back(argv[++i]);
         else if (a.input.empty() && !arg.starts_with("-")) a.input = arg;
-        else if (a.command == "site" && !arg.starts_with("-")) a.extra_inputs.push_back(arg);
+        else if ((a.command == "site" || a.command == "analyze") && !arg.starts_with("-")) a.extra_inputs.push_back(arg);
         else return std::nullopt;
     }
     if (a.input.empty()) return std::nullopt;
@@ -148,7 +155,7 @@ int site(const Args& args) {
     std::vector<Theos::Site::Entry> entries;
     int failures = 0;
     for (const auto& f : files) {
-        Theos::Site::Entry e{f.stem().string(), Theos::Driver::check_file(f.string()), read_text(f)};
+        Theos::Site::Entry e{f.stem().string(), Theos::Driver::check_file(f.string(), args.options), read_text(f)};
         if (!e.result.ok()) {
             ++failures;
             std::cerr << Theos::Driver::render_diagnostics(e.result);
@@ -161,13 +168,34 @@ int site(const Args& args) {
     return failures ? EXIT_INVALID : 0;
 }
 
+int analyze(const Args& args) {
+    std::vector<std::string> inputs = args.extra_inputs;
+    inputs.insert(inputs.begin(), args.input);
+    std::vector<Theos::Driver::Result> results;
+    for (const auto& in : inputs) {
+        results.push_back(Theos::Driver::check_file(in, args.options));
+        std::cerr << Theos::Driver::render_diagnostics(results.back());
+        if (!results.back().ok()) return EXIT_INVALID;
+    }
+    std::vector<const Theos::AST::Document*> docs;
+    for (size_t i = 0; i < results.size(); ++i) {
+        const auto& doc = *results[i].doc;
+        if (i) std::cout << "\n";
+        std::cout << Theos::Analysis::format(doc, Theos::Analysis::analyze(doc));
+        docs.push_back(&doc);
+    }
+    if (docs.size() > 1) std::cout << "\nPremises shared between arguments\n" << Theos::Analysis::shared_premises(docs);
+    return 0;
+}
+
 int run(const Args& args) {
     if (args.command == "inspect") return inspect(args);
+    if (args.command == "analyze") return analyze(args);
     if (args.command == "site") return site(args);
     if (args.command != "check" && args.command != "export" && args.command != "build") return EXIT_USAGE;
     if (args.command == "export" && args.format != "mermaid") return EXIT_USAGE;
 
-    auto result = Theos::Driver::check_file(args.input);
+    auto result = Theos::Driver::check_file(args.input, args.options);
     std::cerr << Theos::Driver::render_diagnostics(result);
     if (!result.ok()) return EXIT_INVALID;
 
