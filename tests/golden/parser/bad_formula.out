@@ -1,0 +1,3 @@
+bad_formula.theo:3:18: error: expected formula, found '&'
+        formula: A & & B
+                     ^

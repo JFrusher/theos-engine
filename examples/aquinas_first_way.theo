@@ -1,33 +1,43 @@
-// ==========================================
-// Title: The First Way (Cosmological Argument)
-// Author: Thomas Aquinas (Formalized)
-// ==========================================
+// The First Way (argument from motion), Summa Theologiae I, q.2, a.3.
+// The regress premise is stated explicitly so the inference is deductively valid.
 
-title: "The First Way: Argument from Motion"
-author: "Thomas Aquinas"
+argument "The First Way: Argument from Motion" by "Thomas Aquinas"
 
-// Philosophical and Scriptural Axioms
-axiom UnmovedMoverAx = scripture(Psalm, 102, 25, 27)
-axiom SustainingWordAx = scripture(Hebrews, 1, 3, 3)
+axiom ST    = source("Thomas Aquinas, Summa Theologiae", "I, q.2, a.3")
+axiom Ps102 = scripture(protestant, "Psalms 102:25-27")
+axiom Heb1  = scripture(protestant, "Hebrews 1:3")
 
-premise P1 {
-    text: "Certain things in the world are in motion or undergoing change, and potentiality is brought to actuality only by something already actual."
-    supports: []
+premise P1 grounded_by [ST] {
+    text:    "Some things in the world are in motion."
+    formula: exists x. Moved(x)
 }
 
-premise P2 {
-    text: "Whatever is moved must be moved by another; an infinite regress of actual movers is metaphysically impossible."
-    supports: [P1]
+premise P2 grounded_by [ST] {
+    text:    "Whatever is moved is moved by something other than itself."
+    formula: forall x. Moved(x) -> exists y. (Moves(y, x) & y != x)
 }
 
-deduction D1 {
-    text: "Therefore, it is necessary to arrive at a first mover, put in motion by no other, which all men understand to be God."
-    supports: [P1, P2]
-    depends_on: [P1, P2]
+premise P3 grounded_by [ST] {
+    text:    "An infinite regress of movers is impossible."
+    formula: ~Regress
 }
 
-conclusion C1 {
-    text: "An Unmoved Mover (God) necessarily exists as the ultimate source of all change and actuality in the universe."
-    supports: [D1]
-    depends_on: [D1]
+premise P4 grounded_by [ST] {
+    text:    "If something is moved, every moved thing has another mover, and every mover is itself moved, then there is an infinite regress of movers."
+    formula: (exists x. Moved(x)) & (forall x. Moved(x) -> exists y. (Moves(y, x) & y != x)) & (forall x. forall y. Moved(x) & Moves(y, x) -> Moved(y)) -> Regress
+}
+
+premise P5 grounded_by [ST, Ps102, Heb1] {
+    text:    "A first mover, itself unmoved, is what everyone understands to be God."
+    formula: forall y. (~Moved(y) & exists x. Moves(y, x)) -> God(y)
+}
+
+deduction D1 from [P1, P2, P3, P4] {
+    text:    "Therefore there is a first mover, moved by no other."
+    formula: exists y. (~Moved(y) & exists x. Moves(y, x))
+}
+
+conclusion C1 from [D1, P5] {
+    text:    "Therefore God exists."
+    formula: exists y. God(y)
 }

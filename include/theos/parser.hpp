@@ -1,14 +1,16 @@
 #pragma once
 
 #include "theos/ast.hpp"
+#include <expected>
 #include <string>
+#include <string_view>
 
 namespace Theos::Parser {
 
-// Parses a .theo source file path into an AST TheologicalGraph
-AST::TheologicalGraph parse_file(const std::string& filepath);
+// Parses one .theo source. Syntax errors stop at the first error.
+std::expected<AST::Document, Diagnostic> parse(std::string_view source, const std::string& file);
 
-// Parses a raw std::string containing .theo DSL source code
-AST::TheologicalGraph parse_string(const std::string& source);
+// Parses a standalone formula (used by tests and tools)
+std::expected<ExprPtr, Diagnostic> parse_formula(std::string_view source);
 
 } // namespace Theos::Parser

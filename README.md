@@ -1,6 +1,6 @@
 # Theos Engine (`theosc`)
 
-A high-performance C++20 engine and CLI toolchain designed to parse, logically validate, and serialize formal theological and philosophical arguments.
+A C++23 engine and CLI for writing, checking and visualizing formal theological and philosophical arguments.
 
 ---
 
@@ -12,49 +12,62 @@ Theos bridges this gap. It provides a deterministic pipeline to turn human-reada
 
 ---
 
-## Architecture & Pipeline
-
-The system operates on an end-to-end compilation pipeline:
+## Pipeline
 
 ```
-[ .theo Source ] 
-       │
-       ▼
-  Parser (AST)
-       │
-       ▼
- Validator (DFS Cycle & Integrity Check)
-       ├───► Exporter (Mermaid.js / Diagrams)
-       └───► Binary Serializer ───► [ .theos Binary Format ]
-
+.theo source ─► Lexer ─► Parser ─► AST ─► Validator ─► Mermaid exporter
 ```
 
-1. **Parser:** Ingests human-readable `.theo` DSL files into a typed abstract syntax tree (AST) representing nodes (premises, deductions, conclusions) and foundational axioms.
-2. **Validator:** Executes graph-level checks, including cycle detection and referential integrity verification, ensuring that circular dependencies or dangling references are caught before export.
-3. **Serializer (`.theos`):** Packs validated graphs into a custom binary layout optimized for fast zero-overhead loading.
+Each claim in a `.theo` file carries natural-language text and a formula:
 
----
+```theo
+argument "Modus Ponens Demo"
 
-## The `.theos` Binary Format
+axiom Obs = source("Field notes", "p. 4")
 
-To ensure memory efficiency and lightning-fast loading, the `.theos` format utilizes a structured layout separated into fixed-size tables and a memory-pooled string heap:
+premise P1 grounded_by [Obs] {
+    text:    "If it rains, the street is wet."
+    formula: Rain -> Wet
+}
 
-* **Header (`TheosHeader`):** 32-byte fixed header featuring magic bytes (`0x5448454F` / `"THEO"`), version metadata, element counts, and exact byte offsets for tables.
-* **Axiom Table:** Packed records linking philosophical/scriptural citations, chapter indices, and verse ranges.
-* **Node Table:** Typed graph nodes containing unique identifiers, classification tags, text payloads, and dynamic support/dependency vectors.
-* **String Heap:** A contiguous null-terminated character pool referenced via zero-copy byte offsets, eliminating internal pointer bloat.
+premise P2 grounded_by [Obs] {
+    text:    "It rains."
+    formula: Rain
+}
+
+conclusion C1 from [P1, P2] by imp_e {
+    text:    "The street is wet."
+    formula: Wet
+}
+```
+
+The full language is specified in [docs/spec/language.md](docs/spec/language.md).
 
 ---
 
 ## CLI Usage
 
 ```sh
-theosc export examples/aquinas_first_way.theo --format mermaid -o diagram.md
-theosc export examples/aquinas_first_way.theo --format binary -o aquinas.theos
-theosc inspect aquinas.theos
+theosc check  examples/aquinas_first_way.theo
+theosc export examples/resurrection.theo --format mermaid -o resurrection.mmd
 ```
 
-Diagnostics go to stderr; exit code 0 = success, 1 = invalid input, 2 = usage error.
+Diagnostics go to stderr as `file:line:col: error: message` with the source line underneath;
+exit code 0 = success, 1 = invalid input, 2 = usage error.
+
+---
+
+## Project Structure
+
+```text
+theos-engine/
+├── include/theos/   # Public headers
+├── src/core/        # Core library (lexer, parser, validator, exporter)
+├── src/cli/         # theosc command-line tool
+├── docs/spec/       # Language specification
+├── examples/        # Sample .theo arguments
+└── tests/           # Catch2 unit tests and golden files
+```
 
 ---
 

@@ -6,10 +6,12 @@ FetchContent_Declare(Catch2
 FetchContent_MakeAvailable(Catch2)
 
 add_executable(theos_tests
-    test_validator.cpp
-    test_parser.cpp
+    test_canon.cpp
     test_exporter.cpp
-    test_format.cpp
+    test_golden.cpp
+    test_lexer.cpp
+    test_parser.cpp
+    test_validator.cpp
 )
 target_link_libraries(theos_tests PRIVATE theos_core theos_warnings Catch2::Catch2WithMain)
 target_compile_definitions(theos_tests PRIVATE THEOS_SOURCE_DIR="${PROJECT_SOURCE_DIR}")

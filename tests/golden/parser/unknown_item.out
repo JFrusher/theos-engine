@@ -1,0 +1,3 @@
+unknown_item.theo:1:1: error: expected an item (import, axiom, define, premise, deduction, conclusion, objection or reply), found 'premiss'
+    premiss P1 { text: "typo" formula: A }
+    ^~~~~~~

@@ -1,0 +1,4 @@
+premise P1 {
+    text: "a"
+    formula: A & & B
+}

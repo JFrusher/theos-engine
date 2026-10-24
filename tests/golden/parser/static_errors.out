@@ -1,0 +1,33 @@
+static_errors.theo:3:1: error: unknown book 'Hezekiah' in the protestant canon
+    axiom S = scripture(protestant, "Hezekiah 1:1")
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+static_errors.theo:8:21: error: 'Missing' is not defined
+    conclusion C1 from [Missing] { text: "c" formula: D }
+                        ^~~~~~~
+static_errors.theo:7:20: error: circular reasoning: 'D2' depends on 'D1', which depends back on 'D2'
+    deduction D2 from [D1] { text: "d" formula: C }
+                       ^~
+static_errors.theo:5:1: warning: premise 'P1' is not used by any conclusion
+    premise P1 grounded_by [S] { text: "p" formula: A }
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+static_errors.theo:6:1: warning: deduction 'D1' is not used by any conclusion
+    deduction D1 from [P1, D2] { text: "d" formula: B }
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+static_errors.theo:7:1: warning: deduction 'D2' is not used by any conclusion
+    deduction D2 from [D1] { text: "d" formula: C }
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---
+argument "Broken"
+axiom S scripture protestant "Hezekiah 1:1"
+premise P1 grounded_by [S]
+  text: "p"
+  formula: A
+deduction D1 from [P1, D2]
+  text: "d"
+  formula: B
+deduction D2 from [D1]
+  text: "d"
+  formula: C
+conclusion C1 from [Missing]
+  text: "c"
+  formula: D

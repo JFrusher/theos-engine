@@ -1,0 +1,3 @@
+missing_brace.theo:4:1: error: expected 'text', 'formula', 'proof' or '}', found end of file
+    
+    ^
