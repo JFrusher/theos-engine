@@ -1,5 +1,7 @@
 # The `.theos` Binary Format — Specification v2.0
 
+**Status:** frozen for Theos 1.0. Readers and writers of format 2.0 are final; extensions arrive as minor versions with ancillary chunks.
+
 A `.theos` file is a compiled, validated argument: every axiom, definition,
 node, formula, proof and objection of a `.theo` source, stored so a reader can
 verify it cheaply and index any record in O(1).

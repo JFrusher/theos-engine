@@ -7,6 +7,9 @@ web playground and gallery.
 **Product goal:** portfolio showcase *and* a real tool. Every milestone should
 both demonstrate engineering skill and leave the tool more useful.
 
+**Status (2026-10-24): all ten phases are implemented** — see §7 for what each phase delivered
+and where it deviated from the plan. Section 1 records the state the project started from.
+
 **How to use this file:** each milestone is sized for one agentic coding session
 and lands as one PR. A milestone is done only when its acceptance criteria pass
 in CI. Do milestones in order inside a phase; phases depend on the ones before.
@@ -269,3 +272,4 @@ Answers to the original open questions (2026-10-24) and decisions made while bui
 | 6 Modal logic | done — S5 tableau (non-branching rules first, 200k-step budget) decides propositional modal inferences with Kripke countermodels; Plantinga's argument is checked by it with no hand proof; Gödel's argument (Scott's version) is fully proved in natural deduction: T1, the corollary, T2 and T3, mutation-tested; Gödel's axioms are stated as necessary truths so proofs may use them inside strict subproofs |
 | 7 Argument analysis | done — imports with cycle detection and diamond merging, each imported file checked in its own right, `-L` search dirs and a bundled standard library (also in the browser build); Dung grounded semantics for objections and replies with defeat propagated along inferences; `theosc analyze`; the library reaches ten arguments, two of which are dialectically contested |
 | 8 Z3 auto-prover | done — SMT-LIB translation with individuals, worlds (S5 as universal quantification), properties with an application predicate and one comprehension axiom per λ; Z3 run as an external program (no link dependency, works on MinGW); `by z3`, `theosc prove`, `export --format smtlib`; Z3 confirms every library inference except Gödel's T3 (unknown within 20 s), which stands on its natural-deduction proof; tests show Z3 also rejects invalid inferences, so the encoding is not trivially inconsistent |
+| 9 Release 1.0 | done — specs marked frozen, CHANGELOG, user guide with a tutorial whose final file is tested, `--version`, install layout with the library found relative to the executable, tag-triggered release workflow building Linux and Windows archives |

@@ -1,5 +1,7 @@
 # Proof Checking — Specification
 
+**Status:** frozen for Theos 1.0.
+
 How `theosc check` decides that an inferred node (a `deduction` or
 `conclusion`) follows from the nodes in its `from` list.
 

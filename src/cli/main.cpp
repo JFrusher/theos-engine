@@ -7,6 +7,9 @@
 #include "theos/smt.hpp"
 #include "theos/types.hpp"
 #include <algorithm>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -33,7 +36,8 @@ constexpr const char* usage =
     "  theosc site    <file-or-dir>... -o <out-dir>\n"
     "\n"
     "Options:\n"
-    "  -L <dir>   also search <dir> for imports (repeatable)\n";
+    "  -L <dir>   also search <dir> for imports (repeatable)\n"
+    "  --version  print the version\n";
 
 struct Args {
     std::string command;
@@ -44,6 +48,21 @@ struct Args {
     std::string output;
     bool chunks = false;
 };
+
+// Where an installed theosc keeps its library: <prefix>/bin/theosc -> <prefix>/share/theos/library
+std::filesystem::path installed_library() {
+    namespace fs = std::filesystem;
+    fs::path exe;
+#ifdef _WIN32
+    char buffer[MAX_PATH];
+    const DWORD n = GetModuleFileNameA(nullptr, buffer, MAX_PATH);
+    exe = fs::path(std::string(buffer, n));
+#else
+    std::error_code ec;
+    exe = fs::read_symlink("/proc/self/exe", ec);
+#endif
+    return exe.empty() ? fs::path() : exe.parent_path().parent_path() / "share" / "theos" / "library";
+}
 
 std::optional<Args> parse_args(int argc, char* argv[]) {
     if (argc < 3) return std::nullopt;
@@ -60,6 +79,7 @@ std::optional<Args> parse_args(int argc, char* argv[]) {
         else return std::nullopt;
     }
     if (a.input.empty()) return std::nullopt;
+    if (const auto lib = installed_library(); !lib.empty() && std::filesystem::is_directory(lib)) a.options.library_dirs.push_back(lib.string());
     return a;
 }
 
@@ -253,6 +273,10 @@ int run(const Args& args) {
 } // namespace
 
 int main(int argc, char* argv[]) {
+    if (argc == 2 && std::string(argv[1]) == "--version") {
+        std::cout << "theosc " << THEOS_VERSION << "\n";
+        return 0;
+    }
     auto args = parse_args(argc, argv);
     if (!args) {
         std::cerr << usage;

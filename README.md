@@ -1,6 +1,10 @@
 # Theos Engine (`theosc`)
 
+[![CI](https://github.com/JFrusher/theos-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/JFrusher/theos-engine/actions/workflows/ci.yml)
+[![Web](https://github.com/JFrusher/theos-engine/actions/workflows/web.yml/badge.svg)](https://github.com/JFrusher/theos-engine/actions/workflows/web.yml)
+
 A C++23 engine and CLI for writing, checking and visualizing formal theological and philosophical arguments.
+New here? Start with the **[user guide](docs/guide.md)**.
 
 ---
 
@@ -116,12 +120,20 @@ theos-engine/
 ├── src/cli/         # theosc command-line tool
 ├── src/wasm/        # WebAssembly entry point for the playground
 ├── web/             # Playground, gallery styles, site assembly
-├── docs/spec/       # Language, proof rules and binary format specifications
+├── docs/            # User guide; language, proof, analysis, SMT and binary specifications
 ├── examples/        # Small teaching examples
 ├── library/         # Formalized arguments (the gallery)
 ├── fuzz/            # libFuzzer targets and seed corpora
 └── tests/           # Catch2 unit tests and golden files
 ```
+
+---
+
+## Installing
+
+Release archives for Linux and Windows are attached to each
+[GitHub release](https://github.com/JFrusher/theos-engine/releases). Unpack one and run
+`bin/theosc`; the standard library ships alongside it in `share/theos/library`.
 
 ---
 
