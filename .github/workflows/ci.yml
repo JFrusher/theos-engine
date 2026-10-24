@@ -11,14 +11,18 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - { cc: gcc, cxx: g++ }
-          - { cc: clang, cxx: clang++ }
+          - { cc: gcc, cxx: g++, flags: "" }
+          # libstdc++ 13 hides std::expected from Clang 18, so Clang builds against libc++
+          - { cc: clang, cxx: clang++, flags: "-stdlib=libc++" }
     name: linux-${{ matrix.compiler.cc }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install libc++
+        if: matrix.compiler.cc == 'clang'
+        run: sudo apt-get update && sudo apt-get install -y libc++-18-dev libc++abi-18-dev
       - name: Configure
-        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }} "-DCMAKE_CXX_FLAGS=${{ matrix.compiler.flags }}"
       - name: Build
         run: cmake --build build
       - name: Test

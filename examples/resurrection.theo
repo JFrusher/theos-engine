@@ -1,22 +1,42 @@
-meta {
-    title: "Historical Case for the Resurrection"
-    author: "Portfolio Developer"
-    version: 1.0
+// A minimal-facts argument for the resurrection. The inference to the best
+// explanation is made an explicit premise (P4), which is where debate belongs.
+
+argument "Historical Case for the Resurrection" by "Theos Examples"
+
+axiom Cor15 = scripture(protestant, "1 Corinthians 15:3-8")
+axiom Mk16  = scripture(protestant, "Mark 16:1-8")
+axiom Lk24  = scripture(protestant, "Luke 24:36-43")
+axiom IBE   = principle("The hypothesis that best explains the established facts is probably true.")
+
+premise P1 grounded_by [Cor15] {
+    text:    "Jesus died by crucifixion and was buried."
+    formula: Died
 }
 
-axiom A1 = scripture(1Corinthians, 15, 3, 8)
-axiom A2 = scripture(Luke, 24, 36, 43)
-
-premise P1 {
-    text: "Jesus died by Roman crucifixion and was buried in a known tomb."
+premise P2 grounded_by [Mk16] {
+    text:    "The tomb was found empty shortly after."
+    formula: EmptyTomb
 }
 
-premise P2 {
-    text: "Multiple independent sources report the tomb was found empty shortly after."
-    supports: [A1]
+premise P3 grounded_by [Cor15, Lk24] {
+    text:    "Individuals and groups experienced appearances of Jesus alive."
+    formula: Appearances
 }
 
-conclusion C1 {
-    text: "God raised Jesus from the dead as the best historical explanation of the data."
-    depends_on: [P1, P2]
+premise P4 grounded_by [IBE] {
+    text:    "If Jesus died, the tomb was empty and he appeared alive, the best explanation is that God raised him."
+    formula: Died & EmptyTomb & Appearances -> Raised
+}
+
+conclusion C1 from [P1, P2, P3, P4] {
+    text:    "God raised Jesus from the dead."
+    formula: Raised
+}
+
+objection O1 against P4 {
+    text: "Grief hallucinations explain the appearances without a resurrection."
+}
+
+reply R1 to O1 {
+    text: "Hallucinations are private; they do not explain group appearances or the empty tomb."
 }

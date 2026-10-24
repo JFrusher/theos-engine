@@ -1,0 +1,8 @@
+argument "Broken"
+
+axiom S = scripture(protestant, "Hezekiah 1:1")
+
+premise P1 grounded_by [S] { text: "p" formula: A }
+deduction D1 from [P1, D2] { text: "d" formula: B }
+deduction D2 from [D1] { text: "d" formula: C }
+conclusion C1 from [Missing] { text: "c" formula: D }

@@ -17,10 +17,15 @@ if(MINGW)
 endif()
 
 add_library(theos_core STATIC
+    src/core/ast.cpp
+    src/core/canon.cpp
+    src/core/diagnostic.cpp
+    src/core/driver.cpp
+    src/core/exporter.cpp
+    src/core/expr.cpp
+    src/core/lexer.cpp
     src/core/parser.cpp
     src/core/validator.cpp
-    src/core/exporter.cpp
-    src/core/format.cpp
 )
 target_include_directories(theos_core PUBLIC include)
 target_link_libraries(theos_core PRIVATE theos_warnings)

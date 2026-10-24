@@ -1,17 +1,10 @@
 #pragma once
 
 #include "theos/ast.hpp"
-#include <string>
-#include <vector>
 
 namespace Theos::Validator {
 
-struct ValidationResult {
-    bool is_valid = true;
-    std::vector<std::string> errors;
-    std::vector<std::string> warnings;
-};
-
-ValidationResult validate(const AST::TheologicalGraph& graph);
+// Checks the static rules of the language spec (§5) and resolves scripture references in place.
+Diagnostics validate(AST::Document& doc);
 
 } // namespace Theos::Validator

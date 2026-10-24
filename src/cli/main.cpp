@@ -1,94 +1,82 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include "theos/ast.hpp"
-#include "theos/parser.hpp"
+#include "theos/driver.hpp"
 #include "theos/exporter.hpp"
-#include "theos/format.hpp"
-#include "theos/validator.hpp"
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
 namespace {
 
 constexpr int EXIT_INVALID = 1;
 constexpr int EXIT_USAGE = 2;
 
-void print_help() {
-    std::cerr << "theosc - the Theos argument compiler\n\n"
-              << "Usage:\n"
-              << "  theosc export <input.theo> --format <mermaid|binary> [-o output_file]\n"
-              << "  theosc inspect <input.theos>\n";
-}
+constexpr const char* usage =
+    "theosc - the Theos argument compiler\n"
+    "\n"
+    "Usage:\n"
+    "  theosc check  <file.theo>\n"
+    "  theosc export <file.theo> --format mermaid [-o <out>]\n";
 
-int inspect(const std::string& input_file) {
-    auto graph = Theos::read_binary_file(input_file);
-    std::cout << "Nodes: " << graph.nodes.size() << ", Axioms: " << graph.axioms.size() << "\n";
-    for (const auto& node : graph.nodes) {
-        std::cout << "  [" << node.type << "] " << node.id << ": " << node.text << "\n";
-    }
-    return 0;
-}
-
-int export_file(int argc, char* argv[]) {
-    std::string input_file;
+struct Args {
+    std::string command;
+    std::string input;
     std::string format;
-    std::string output_file;
+    std::string output;
+};
 
+std::optional<Args> parse_args(int argc, char* argv[]) {
+    if (argc < 3) return std::nullopt;
+    Args a;
+    a.command = argv[1];
     for (int i = 2; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "--format" && i + 1 < argc) {
-            format = argv[++i];
-        } else if (arg == "-o" && i + 1 < argc) {
-            output_file = argv[++i];
-        } else if (input_file.empty()) {
-            input_file = arg;
-        } else {
-            std::cerr << "error: unexpected argument '" << arg << "'\n";
-            return EXIT_USAGE;
-        }
+        const std::string arg = argv[i];
+        if (arg == "--format" && i + 1 < argc) a.format = argv[++i];
+        else if (arg == "-o" && i + 1 < argc) a.output = argv[++i];
+        else if (a.input.empty() && !arg.starts_with("-")) a.input = arg;
+        else return std::nullopt;
     }
-    if (input_file.empty() || (format != "mermaid" && format != "binary")) {
-        print_help();
-        return EXIT_USAGE;
-    }
+    if (a.input.empty()) return std::nullopt;
+    return a;
+}
 
-    auto graph = Theos::Parser::parse_file(input_file);
-    auto validation = Theos::Validator::validate(graph);
-    if (!validation.is_valid) {
-        for (const auto& err : validation.errors) {
-            std::cerr << input_file << ": error: " << err << "\n";
-        }
-        return EXIT_INVALID;
+void write_output(const std::string& path, const std::string& content) {
+    if (path.empty()) {
+        std::cout << content;
+        return;
     }
+    std::ofstream out(path, std::ios::binary);
+    if (!out) throw std::runtime_error("cannot write '" + path + "'");
+    out << content;
+}
 
-    if (format == "mermaid") {
-        const std::string mermaid = Theos::Exporter::to_mermaid(graph);
-        if (output_file.empty()) {
-            std::cout << mermaid;
-            return 0;
-        }
-        std::ofstream out(output_file);
-        if (!out) throw std::runtime_error("cannot write " + output_file);
-        out << mermaid;
+int run(const Args& args) {
+    if (args.command != "check" && args.command != "export") return EXIT_USAGE;
+    if (args.command == "export" && args.format != "mermaid") return EXIT_USAGE;
+
+    auto result = Theos::Driver::check_file(args.input);
+    std::cerr << Theos::Driver::render_diagnostics(result);
+    if (!result.ok()) return EXIT_INVALID;
+
+    if (args.command == "check") {
+        std::cerr << args.input << ": ok\n";
         return 0;
     }
-
-    Theos::write_binary_file(output_file.empty() ? "output.theos" : output_file, graph);
+    write_output(args.output, Theos::Exporter::to_mermaid(*result.doc));
     return 0;
 }
 
 } // namespace
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        print_help();
+    auto args = parse_args(argc, argv);
+    if (!args) {
+        std::cerr << usage;
         return EXIT_USAGE;
     }
     try {
-        const std::string command = argv[1];
-        if (command == "inspect") return inspect(argv[2]);
-        if (command == "export") return export_file(argc, argv);
-        print_help();
-        return EXIT_USAGE;
+        const int code = run(*args);
+        if (code == EXIT_USAGE) std::cerr << usage;
+        return code;
     } catch (const std::exception& e) {
         std::cerr << "error: " << e.what() << "\n";
         return EXIT_INVALID;

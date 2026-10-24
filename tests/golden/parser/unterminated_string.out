@@ -1,0 +1,3 @@
+unterminated_string.theo:2:11: error: unterminated string
+        text: "never closed
+              ^
