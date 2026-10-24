@@ -18,9 +18,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install Z3
+        run: sudo apt-get update && sudo apt-get install -y z3
       - name: Install Clang 19
         if: matrix.compiler.cc == 'clang'
-        run: sudo apt-get update && sudo apt-get install -y clang-19
+        run: sudo apt-get install -y clang-19
       - name: Configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}
       - name: Build
@@ -57,6 +59,7 @@ jobs:
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-z3
             git
       - name: Configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
