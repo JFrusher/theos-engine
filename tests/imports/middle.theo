@@ -1,0 +1,2 @@
+import "base"
+premise Extra grounded_by [PNC] { text: "C." formula: C }

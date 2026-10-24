@@ -1,5 +1,6 @@
 #include "theos/exporter.hpp"
 #include "theos/canon.hpp"
+#include "theos/dialectic.hpp"
 #include <sstream>
 
 namespace Theos::Exporter {
@@ -66,6 +67,10 @@ std::string to_mermaid(const AST::Document& doc) {
     ss << "    classDef objection fill:#f7e3e1,stroke:#b3261e,color:#23212b;\n";
     ss << "    classDef reply fill:#f3f4f1,stroke:#7a5c2e,color:#23212b;\n";
     ss << "    classDef imported stroke-dasharray:4 3;\n";
+    // Dialectical status: defeated claims and overruled objections fade; open questions are dashed
+    ss << "    classDef defeated fill:#f3f4f1,stroke:#b3261e,stroke-dasharray:6 3,color:#8a8796;\n";
+    ss << "    classDef undecided stroke-dasharray:2 2;\n";
+    ss << "    classDef overruled fill:#f3f4f1,stroke:#c9ccc6,color:#8a8796;\n";
 
     for (const auto& ax : doc.axioms) {
         ss << "    " << ax.id << "([\"" << ax.id << ": " << escape(wrap(axiom_label(ax), 40)) << "\"]):::axiom\n";
@@ -77,6 +82,15 @@ std::string to_mermaid(const AST::Document& doc) {
     }
     for (const auto& d : doc.dialectics) {
         ss << "    " << d.id << "{{\"<b>" << d.id << "</b>: " << escape(wrap(d.text, 40)) << "\"}}:::" << AST::to_string(d.kind) << "\n";
+    }
+
+    const auto ev = Dialectic::evaluate(doc);
+    for (const auto& [id, status] : ev.nodes) {
+        if (status != Dialectic::Status::Accepted) ss << "    class " << id << " " << Dialectic::to_string(status) << "\n";
+    }
+    for (const auto& [id, status] : ev.dialectics) {
+        if (status == Dialectic::Status::Defeated) ss << "    class " << id << " overruled\n";
+        if (status == Dialectic::Status::Undecided) ss << "    class " << id << " undecided\n";
     }
 
     for (const auto& n : doc.nodes) {

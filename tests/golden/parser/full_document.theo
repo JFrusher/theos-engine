@@ -1,6 +1,5 @@
 argument "Golden" by "Tests"
 
-import "lib/shared"
 
 axiom S = scripture(catholic, "Wisdom 13:1-9")
 axiom W = source("Aristotle, Physics", "VIII.5")

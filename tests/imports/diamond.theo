@@ -1,0 +1,4 @@
+argument "Diamond"
+import "left"
+import "right"
+conclusion C1 from [Left, Right, Shared] { text: "All." formula: L & R & A }

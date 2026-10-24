@@ -1,0 +1,46 @@
+// Anselm's ontological argument (Proslogion II). g is "that than which nothing
+// greater can be conceived".
+
+argument "The Ontological Argument" by "Anselm of Canterbury"
+
+axiom Proslogion = source("Anselm, Proslogion", "ch. 2")
+
+premise P1 grounded_by [Proslogion] {
+    text:    "That than which nothing greater can be conceived exists in the understanding, even of the fool."
+    formula: InUnderstanding(g)
+}
+
+premise P2 grounded_by [Proslogion] {
+    text:    "If it existed in the understanding alone, something greater could be conceived: the same being existing in reality."
+    formula: InUnderstanding(g) & ~InReality(g) -> exists x. (Conceivable(x) & Greater(x, g))
+}
+
+premise P3 grounded_by [Proslogion] {
+    text:    "Nothing greater than it can be conceived."
+    formula: ~exists x. (Conceivable(x) & Greater(x, g))
+}
+
+conclusion C1 from [P1, P2, P3] {
+    text:    "Therefore that than which nothing greater can be conceived exists in reality."
+    formula: InReality(g)
+    proof {
+        1. InUnderstanding(g)                                                              premise P1
+        2. InUnderstanding(g) & ~InReality(g) -> exists x. (Conceivable(x) & Greater(x, g))   premise P2
+        3. ~exists x. (Conceivable(x) & Greater(x, g))                                     premise P3
+        4. ~(InUnderstanding(g) & ~InReality(g))                                           mt 2, 3
+        {
+            5. ~InReality(g)                                                               assume
+            6. InUnderstanding(g) & ~InReality(g)                                          and_i 1, 5
+            7. bot                                                                         not_e 6, 4
+        }
+        8. InReality(g)                                                                    raa 5-7
+    }
+}
+
+objection O1 against P2 {
+    text: "Gaunilo (On Behalf of the Fool, § 6): the same reasoning would prove that the most excellent island exists."
+}
+
+reply R1 to O1 {
+    text: "An island has no intrinsic maximum of greatness; only a being greatest in every respect has one, so the parody fails."
+}

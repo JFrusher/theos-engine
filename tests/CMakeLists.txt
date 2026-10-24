@@ -8,8 +8,10 @@ FetchContent_MakeAvailable(Catch2)
 add_executable(theos_tests
     test_binary.cpp
     test_canon.cpp
+    test_dialectic.cpp
     test_exporter.cpp
     test_golden.cpp
+    test_imports.cpp
     test_lexer.cpp
     test_parser.cpp
     test_proofs.cpp

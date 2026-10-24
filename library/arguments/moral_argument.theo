@@ -1,0 +1,29 @@
+// The moral argument in its modern form.
+
+argument "The Moral Argument" by "William Lane Craig"
+
+axiom Craig  = source("William Lane Craig, Reasonable Faith", "3rd ed., the moral argument")
+axiom Ethics = principle("Some moral truths, such as that torturing children for fun is wrong, are binding whatever anyone believes.")
+
+premise P1 grounded_by [Craig] {
+    text:    "If God does not exist, objective moral values and duties do not exist."
+    formula: ~God -> ~ObjectiveMorality
+}
+
+premise P2 grounded_by [Ethics] {
+    text:    "Objective moral values and duties do exist."
+    formula: ObjectiveMorality
+}
+
+conclusion C1 from [P1, P2] {
+    text:    "Therefore God exists."
+    formula: God
+}
+
+objection O1 against P1 {
+    text: "Moral facts could be necessary truths needing no ground beyond themselves, as non-theistic moral realists hold."
+}
+
+reply R1 to O1 {
+    text: "Brute moral facts leave duties without anyone to whom they are owed, and explain neither their authority nor our knowledge of them."
+}

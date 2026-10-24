@@ -1,0 +1,4 @@
+// Library file: shared axiom, definition and premise
+axiom PNC = principle("Nothing can both be and not be.")
+define Both := A & B
+premise Shared grounded_by [PNC] { text: "A and B." formula: Both }

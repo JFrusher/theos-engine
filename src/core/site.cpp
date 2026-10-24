@@ -1,5 +1,7 @@
 #include "theos/site.hpp"
+#include <algorithm>
 #include "theos/canon.hpp"
+#include "theos/dialectic.hpp"
 #include "theos/exporter.hpp"
 
 namespace Theos::Site {
@@ -107,8 +109,22 @@ std::string argument_page(const Entry& e) {
     out += "<main class=\"argument page\">\n<nav><a href=\"index.html\">All arguments</a></nav>\n";
     out += "<h1>" + html(title_of(e)) + "</h1>\n";
     if (r.doc && !r.doc->author.empty()) out += "<p class=\"author\">" + html(r.doc->author) + "</p>\n";
-    out += r.ok() ? "<p class=\"verdict\">The argument holds.</p>\n<p class=\"verdict-detail\">Every inference was checked by machine.</p>\n"
-                  : "<p class=\"verdict fails\">The argument does not hold.</p>\n";
+    if (r.ok()) {
+        out += "<p class=\"verdict\">The argument is valid.</p>\n<p class=\"verdict-detail\">Every inference was checked by machine. ";
+        const auto ev = Dialectic::evaluate(*r.doc);
+        size_t objections = 0;
+        for (const auto& d : r.doc->dialectics) objections += d.kind == AST::DialecticKind::Objection;
+        if (objections && ev.standing_objections.empty()) out += objections == 1 ? "The objection is answered." : "All " + std::to_string(objections) + " objections are answered.";
+        for (const auto& [node, list] : ev.standing_objections) {
+            for (const auto& o : list) out += "Objection " + html(o) + " stands against " + html(node) + ". ";
+        }
+        for (const auto& n : r.doc->nodes) {
+            if (n.kind == AST::NodeKind::Conclusion && ev.nodes.at(n.id) != Dialectic::Status::Accepted) out += "So " + html(n.id) + " is contested. ";
+        }
+        out += "</p>\n";
+    } else {
+        out += "<p class=\"verdict fails\">The argument is not valid.</p>\n";
+    }
     out += "<p><a href=\"../index.html#src=" + base64(e.source) + "\">Open in the playground</a></p>\n";
 
     if (!r.ok()) out += "<pre class=\"diagnostics\">" + html(Driver::render_diagnostics(r)) + "</pre>\n";
@@ -133,10 +149,13 @@ std::string argument_page(const Entry& e) {
         out += "</dl>\n";
     }
 
+    const auto ev = Dialectic::evaluate(doc);
     out += "<h2>The argument</h2>\n";
     for (const auto& n : doc.nodes) {
         const std::string kind(AST::to_string(n.kind));
-        out += "<section class=\"claim " + kind + "\" id=\"" + html(n.id) + "\">\n<h3><span class=\"id\">" + html(n.id) + "</span> " + kind + "</h3>\n";
+        const auto status = ev.nodes.at(n.id);
+        const std::string badge = status == Dialectic::Status::Accepted ? "" : " <span class=\"status " + std::string(Dialectic::to_string(status)) + "\">" + std::string(Dialectic::to_string(status)) + "</span>";
+        out += "<section class=\"claim " + kind + "\" id=\"" + html(n.id) + "\">\n<h3><span class=\"id\">" + html(n.id) + "</span> " + kind + badge + "</h3>\n";
         out += "<p>" + html(n.text) + "</p>\n<p class=\"formula\">" + html(print(*n.formula, Notation::Unicode)) + "</p>\n";
         if (!n.grounded_by.empty()) out += "<p class=\"basis\">Grounded by " + refs(n.grounded_by) + "</p>\n";
         if (!n.from.empty()) {
@@ -159,7 +178,9 @@ std::string argument_page(const Entry& e) {
         for (const auto& d : doc.dialectics) {
             const bool objection = d.kind == AST::DialecticKind::Objection;
             out += std::string("<section class=\"claim ") + (objection ? "objection" : "reply") + "\" id=\"" + html(d.id) + "\">\n<h3><span class=\"id\">" +
-                   html(d.id) + "</span> " + (objection ? "objection to " : "reply to ") + html(d.target.name) + "</h3>\n<p>" + html(d.text) + "</p>\n";
+                   html(d.id) + "</span> " + (objection ? "objection to " : "reply to ") + html(d.target.name) +
+                   (ev.dialectics.at(d.id) == Dialectic::Status::Accepted ? (objection ? " <span class=\"status defeated\">stands</span>" : "") : "") +
+                   (ev.dialectics.at(d.id) == Dialectic::Status::Defeated ? " <span class=\"status overruled\">answered</span>" : "") + "</h3>\n<p>" + html(d.text) + "</p>\n";
             if (d.formula) out += "<p class=\"formula\">" + html(print(*d.formula, Notation::Unicode)) + "</p>\n";
             out += "</section>\n";
         }
@@ -178,7 +199,15 @@ std::string index_page(const std::vector<Entry>& entries) {
     for (const auto& e : entries) {
         out += "<li><a href=\"" + html(e.slug) + ".html\">" + html(title_of(e)) + "</a>";
         if (e.result.doc && !e.result.doc->author.empty()) out += " <span class=\"author\">" + html(e.result.doc->author) + "</span>";
-        out += e.result.ok() ? " <span class=\"status holds\">holds</span>" : " <span class=\"status fails\">does not hold</span>";
+        if (!e.result.ok()) {
+            out += " <span class=\"status fails\">not valid</span>";
+        } else {
+            const auto ev = Dialectic::evaluate(*e.result.doc);
+            const bool contested = std::ranges::any_of(e.result.doc->nodes, [&](const AST::Node& n) {
+                return n.kind == AST::NodeKind::Conclusion && ev.nodes.at(n.id) != Dialectic::Status::Accepted;
+            });
+            out += contested ? " <span class=\"status defeated\">valid, contested</span>" : " <span class=\"status holds\">valid</span>";
+        }
         if (e.result.doc) {
             for (const auto& n : e.result.doc->nodes) {
                 if (n.kind == AST::NodeKind::Conclusion && !n.imported) out += "<p>" + html(n.text) + "</p>";

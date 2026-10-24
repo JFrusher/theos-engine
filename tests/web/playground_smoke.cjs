@@ -34,17 +34,17 @@ conclusion C from [P1, P2] { text: "A" formula: A }
 
     await page.goto(`${base}/index.html`);
     await page.waitForSelector('#graph svg', { timeout: 30000 });
-    assert.equal(await page.textContent('#verdict'), 'The argument holds.');
+    assert.equal(await page.textContent('#verdict'), 'The argument is valid.');
 
     // Affirming the consequent: the checker must reject it with a counterexample
     await page.evaluate(src => document.querySelector('.CodeMirror').CodeMirror.setValue(src), INVALID);
-    await page.waitForFunction(() => document.querySelector('#verdict').textContent.includes('does not hold'), null, { timeout: 10000 });
+    await page.waitForFunction(() => document.querySelector('#verdict').textContent.includes('not valid'), null, { timeout: 10000 });
     const note = await page.textContent('#notes li.error');
     assert.match(note, /counterexample A = false, B = true/);
 
     // Fixing the conclusion makes it hold again
     await page.evaluate(src => document.querySelector('.CodeMirror').CodeMirror.setValue(src), INVALID.replace('formula: A }\n', 'formula: B }\n').replace('premise P2 { text: "B" formula: B }', 'premise P2 { text: "A" formula: A }'));
-    await page.waitForFunction(() => document.querySelector('#verdict').textContent === 'The argument holds.', null, { timeout: 10000 });
+    await page.waitForFunction(() => document.querySelector('#verdict').textContent === 'The argument is valid.', null, { timeout: 10000 });
 
     await page.goto(`${base}/gallery/index.html`);
     assert.ok((await page.locator('.entries li').count()) >= 2);

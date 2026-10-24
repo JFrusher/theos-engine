@@ -42,7 +42,7 @@ conclusion C1 from [P1] { text: "c" formula: A proof { 1. A premise P1 } }
     REQUIRE(e.result.ok());
     const auto page = Site::argument_page(e);
     REQUIRE(page.find("<h1>A &lt;b&gt;</h1>") != std::string::npos);
-    REQUIRE(page.find("The argument holds.") != std::string::npos);
+    REQUIRE(page.find("The argument is valid.") != std::string::npos);
     REQUIRE(page.find("x &amp; y") != std::string::npos);
     REQUIRE(page.find("<span class=\"j\">premise P1</span>") != std::string::npos);
     REQUIRE(page.find("#src=" + Site::base64(src)) != std::string::npos);
