@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TheosEngine CXX)
+project(TheosEngine VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -68,6 +68,13 @@ endif()
 
 add_executable(theosc src/cli/main.cpp)
 target_link_libraries(theosc PRIVATE theos_core theos_warnings)
+target_compile_definitions(theosc PRIVATE THEOS_VERSION="${PROJECT_VERSION}")
+
+# Release layout: bin/theosc and share/theos/library, which theosc finds relative to itself
+install(TARGETS theosc RUNTIME DESTINATION bin)
+install(DIRECTORY library/ DESTINATION share/theos/library)
+install(FILES LICENSE README.md DESTINATION share/theos)
+install(DIRECTORY docs/ DESTINATION share/theos/docs)
 
 if(THEOS_FUZZ)
     add_subdirectory(fuzz)

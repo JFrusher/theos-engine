@@ -1,4 +1,6 @@
-# The `.theo` Language — Specification v2
+# The `.theo` Language — Specification
+
+**Status:** frozen for Theos 1.0. Later versions may add syntax but will keep accepting every valid 1.0 file.
 
 A `.theo` file states one argument, or a library of reusable axioms and
 definitions. Every claim carries **natural-language text** for readers and a
