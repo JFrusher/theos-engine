@@ -207,7 +207,7 @@ Size: **S** ≈ under 300 changed lines, **M** ≈ 300–1,000, **L** ≈ over 1
 
 **M6.1 Modal operators + ND rules** (L) — `[]`/`□`, `<>`/`◇`; S5 natural deduction with boxed subproofs; propositional S5 validity via tableau with countermodel (Kripke model) output. *Accept:* exercise suite; invalid argument prints a world/valuation countermodel.
 
-**M6.2 Ontological arguments** (S) — Plantinga's modal ontological argument (and Gödel's if quantified modal logic is in scope — see open questions) in the library. *Accept:* checks pass.
+**M6.2 Higher-order modal + ontological arguments** (L) — Property variables (`forall F:prop.`), λ-abstraction, `define` with a `conv` rule, Barcan rules for constant-domain S5. Plantinga's and Gödel's (Scott's version) ontological arguments fully proved in the library. *Accept:* `theosc check` passes on both.
 
 ### Phase 7 — Argument analysis
 
@@ -240,10 +240,22 @@ Size: **S** ≈ under 300 changed lines, **M** ≈ 300–1,000, **L** ≈ over 1
 
 ---
 
-## 6. Open questions
+## 6. Decision log
 
-1. **C++ standard:** `CLAUDE.md` says strict C++20 but also recommends `std::expected` (C++23). Move to C++23 (GCC 13+/MinGW-w64 supports it) or stay on C++20 and use exceptions + diagnostics lists?
-2. **License:** MIT/Apache-2.0 (maximizes use) or GPL/AGPL (keeps derivatives open)?
-3. **Quantified modal logic:** is Gödel's ontological argument (needs second-order + modal) a goal, or is propositional S5 + FOL enough?
-4. **Library content:** which arguments must be in 1.0 (Five Ways, Kalam, Anselm, Plantinga, Leibniz contingency, problem of evil as counter-argument…)?
-5. **Name/branding:** keep "Theos" / `.theo` / `.theos` for the final product?
+Answers to the original open questions (2026-10-24) and decisions made while building:
+
+| # | Decision |
+|---|----------|
+| 1 | **C++23.** `std::expected` for results that carry diagnostics; exceptions only for I/O and binary-format corruption. GCC 13+ / Clang 18+ / MinGW-w64 GCC 13+. |
+| 2 | **MIT license.** |
+| 3 | **Gödel's ontological argument is a 1.0 goal.** The formula language therefore includes property variables, property abstraction (λ) and definitions on top of first-order S5 (Phase 6). |
+| 4 | **Library for 1.0** must include Gödel; others chosen during Phase 7. |
+| 5 | **Names stay:** Theos, `theosc`, `.theo` source, `.theos` binary. |
+
+---
+
+## 7. Progress
+
+| Phase | Status |
+|-------|--------|
+| 0 Foundation | done |

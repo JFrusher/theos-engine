@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
-#include <iostream>
+#include <algorithm>
 
 namespace Theos {
 
@@ -116,102 +116,87 @@ void write_binary_file(const std::string& filepath, const AST::TheologicalGraph&
 }
 
 // --- BINARY READER ---
+namespace {
+
+// Bounds-checked sequential reader over the file buffer
+class Cursor {
+public:
+    Cursor(const std::vector<char>& buf, size_t pos) : buf_(buf), pos_(pos) {
+        if (pos > buf.size()) throw std::runtime_error("Invalid binary file: table offset past end of file.");
+    }
+
+    template <typename T>
+    T read() {
+        if (buf_.size() - pos_ < sizeof(T)) throw std::runtime_error("Invalid binary file: unexpected end of data.");
+        T value;
+        std::memcpy(&value, buf_.data() + pos_, sizeof(T));
+        pos_ += sizeof(T);
+        return value;
+    }
+
+private:
+    const std::vector<char>& buf_;
+    size_t pos_;
+};
+
+} // namespace
+
 AST::TheologicalGraph read_binary_file(const std::string& filepath) {
-    std::ifstream in(filepath, std::ios::binary | std::ios::ate);
+    std::ifstream in(filepath, std::ios::binary);
     if (!in) {
         throw std::runtime_error("Failed to open binary file for reading: " + filepath);
     }
+    const std::vector<char> buffer{std::istreambuf_iterator<char>(in), {}};
 
-    std::streamsize file_size = in.tellg();
-    in.seekg(0, std::ios::beg);
-
-    std::vector<char> buffer(static_cast<size_t>(file_size));
-    if (!in.read(buffer.data(), file_size)) {
-        throw std::runtime_error("Failed to read binary file content: " + filepath);
-    }
-
-    if (file_size < static_cast<std::streamsize>(sizeof(TheosHeader))) {
+    if (buffer.size() < sizeof(TheosHeader)) {
         throw std::runtime_error("Invalid binary file: File too small.");
     }
-
-    const TheosHeader* header = reinterpret_cast<const TheosHeader*>(buffer.data());
-    std::cout << "DEBUG FORMAT: Magic=0x" << std::hex << header->magic << std::dec << "\n";
-    std::cout << "DEBUG FORMAT: AxiomCount=" << header->axiom_count << ", NodeCount=" << header->node_count << "\n";
-    std::cout << "DEBUG FORMAT: AxiomOffset=" << header->axiom_table_offset << ", NodeOffset=" << header->node_table_offset << ", HeapOffset=" << header->string_heap_offset << "\n";
-    if (header->magic != THEOS_MAGIC) {
+    TheosHeader header;
+    std::memcpy(&header, buffer.data(), sizeof(header));
+    if (header.magic != THEOS_MAGIC) {
         throw std::runtime_error("Invalid binary file: Bad magic number.");
     }
-
-    AST::TheologicalGraph graph;
+    if (header.string_heap_offset >= buffer.size()) {
+        throw std::runtime_error("Invalid binary file: string heap offset past end of file.");
+    }
 
     auto get_string_from_heap = [&](uint32_t offset) -> std::string {
         if (offset == 0) return "";
-        size_t heap_start = header->string_heap_offset;
-        if (heap_start + offset >= buffer.size()) {
-            return "";
-        }
-        return std::string(buffer.data() + heap_start + offset);
+        const size_t start = size_t{header.string_heap_offset} + offset;
+        if (start >= buffer.size()) throw std::runtime_error("Invalid binary file: string offset past end of file.");
+        const auto end = std::find(buffer.begin() + static_cast<long>(start), buffer.end(), '\0');
+        if (end == buffer.end()) throw std::runtime_error("Invalid binary file: unterminated string.");
+        return std::string(buffer.begin() + static_cast<long>(start), end);
     };
 
-    // 1. Read Axioms
-    if (header->axiom_table_offset + header->axiom_count > buffer.size() && header->axiom_count > 0) {
-        // Bounds check safeguard
-    }
-    const char* ptr = buffer.data() + header->axiom_table_offset;
-    for (uint16_t i = 0; i < header->axiom_count; ++i) {
-        uint32_t name_offset = *reinterpret_cast<const uint32_t*>(ptr);
-        ptr += sizeof(uint32_t);
-        uint32_t book_offset = *reinterpret_cast<const uint32_t*>(ptr);
-        ptr += sizeof(uint32_t);
+    AST::TheologicalGraph graph;
 
+    Cursor axioms(buffer, header.axiom_table_offset);
+    for (uint16_t i = 0; i < header.axiom_count; ++i) {
         AST::Axiom ax;
-        ax.name = get_string_from_heap(name_offset);
-        ax.book_name = get_string_from_heap(book_offset);
+        ax.name = get_string_from_heap(axioms.read<uint32_t>());
+        ax.book_name = get_string_from_heap(axioms.read<uint32_t>());
         ax.book_id = 0;
-
-        ax.chapter = *reinterpret_cast<const uint16_t*>(ptr);
-        ptr += sizeof(uint16_t);
-        ax.start_verse = *reinterpret_cast<const uint8_t*>(ptr);
-        ptr += sizeof(uint8_t);
-        ax.end_verse = *reinterpret_cast<const uint8_t*>(ptr);
-        ptr += sizeof(uint8_t);
-
+        ax.chapter = axioms.read<uint16_t>();
+        ax.start_verse = axioms.read<uint8_t>();
+        ax.end_verse = axioms.read<uint8_t>();
         graph.axioms.push_back(ax);
     }
 
-    // 2. Read Nodes
-    ptr = buffer.data() + header->node_table_offset;
-    for (uint16_t i = 0; i < header->node_count; ++i) {
-        uint32_t id_offset = *reinterpret_cast<const uint32_t*>(ptr);
-        ptr += sizeof(uint32_t);
-        uint32_t type_offset = *reinterpret_cast<const uint32_t*>(ptr);
-        ptr += sizeof(uint32_t);
-        uint32_t text_offset = *reinterpret_cast<const uint32_t*>(ptr);
-        ptr += sizeof(uint32_t);
-
+    Cursor nodes(buffer, header.node_table_offset);
+    for (uint16_t i = 0; i < header.node_count; ++i) {
         AST::Node node;
-        node.id = get_string_from_heap(id_offset);
-        node.type = get_string_from_heap(type_offset);
-        node.text = get_string_from_heap(text_offset);
-
-        // Read supports list
-        uint16_t supports_count = *reinterpret_cast<const uint16_t*>(ptr);
-        ptr += sizeof(uint16_t);
+        node.id = get_string_from_heap(nodes.read<uint32_t>());
+        node.type = get_string_from_heap(nodes.read<uint32_t>());
+        node.text = get_string_from_heap(nodes.read<uint32_t>());
+        const auto supports_count = nodes.read<uint16_t>();
         for (uint16_t s = 0; s < supports_count; ++s) {
-            uint32_t sup_offset = *reinterpret_cast<const uint32_t*>(ptr);
-            ptr += sizeof(uint32_t);
-            node.supports.push_back(get_string_from_heap(sup_offset));
+            node.supports.push_back(get_string_from_heap(nodes.read<uint32_t>()));
         }
-
-        // Read depends_on list
-        uint16_t depends_count = *reinterpret_cast<const uint16_t*>(ptr);
-        ptr += sizeof(uint16_t);
+        const auto depends_count = nodes.read<uint16_t>();
         for (uint16_t d = 0; d < depends_count; ++d) {
-            uint32_t dep_offset = *reinterpret_cast<const uint32_t*>(ptr);
-            ptr += sizeof(uint32_t);
-            node.depends_on.push_back(get_string_from_heap(dep_offset));
+            node.depends_on.push_back(get_string_from_heap(nodes.read<uint32_t>()));
         }
-
         graph.nodes.push_back(node);
     }
 
