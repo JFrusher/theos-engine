@@ -1,9 +1,18 @@
-find_package(Catch2 REQUIRED)
+include(FetchContent)
+FetchContent_Declare(Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG v3.7.1
+    GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(Catch2)
 
 add_executable(theos_tests
     test_validator.cpp
+    test_parser.cpp
+    test_exporter.cpp
+    test_format.cpp
 )
+target_link_libraries(theos_tests PRIVATE theos_core theos_warnings Catch2::Catch2WithMain)
+target_compile_definitions(theos_tests PRIVATE THEOS_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
-target_link_libraries(theos_tests PRIVATE theos_core Catch2::Catch2WithMain)
-
-add_test(NAME UnitTests COMMAND theos_tests)
+include(${catch2_SOURCE_DIR}/extras/Catch.cmake)
+catch_discover_tests(theos_tests)

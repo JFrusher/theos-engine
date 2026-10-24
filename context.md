@@ -1,3 +1,5 @@
+> **Superseded.** This describes a planned layout that was never implemented and disagrees with the code. It is replaced by the `.theos` v2 specification in Phase 2 of [ROADMAP.md](ROADMAP.md).
+
 # .theos File Format Specification v1.0
 
 ## 1. Overview

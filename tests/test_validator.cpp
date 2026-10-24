@@ -1,34 +1,57 @@
 #include <catch2/catch_test_macros.hpp>
-#include "theos/ast.hpp"
+#include "theos/validator.hpp"
 
-// Forward declaration of validator function
-namespace Theos::Validator {
-    void validate_graph(const AST::TheologicalGraph& graph);
+using namespace Theos;
+
+namespace {
+AST::Node node(std::string id, std::string type, std::vector<std::string> deps) {
+    return AST::Node{std::move(id), "text", std::move(type), {}, std::move(deps)};
 }
 
-TEST_CASE("Valid theological DAG passes validation", "[validator]") {
-    AST::TheologicalGraph graph;
-    graph.title = "Test Graph";
+bool has_error_containing(const Validator::ValidationResult& r, const std::string& needle) {
+    for (const auto& e : r.errors) {
+        if (e.find(needle) != std::string::npos) return true;
+    }
+    return false;
+}
+} // namespace
 
-    AST::Node p1{"P1", "Premise one", "premise", {}, {}};
-    AST::Node d1{"D1", "Deduction based on P1", "deduction", {}, {"P1"}};
-    AST::Node c1{"C1", "Conclusion based on D1", "conclusion", {}, {"D1"}};
-
-    graph.nodes = {p1, d1, c1};
-
-    REQUIRE_NOTHROW(Theos::Validator::validate_graph(graph));
+TEST_CASE("Valid DAG passes", "[validator]") {
+    AST::TheologicalGraph g;
+    g.nodes = {node("P1", "premise", {}), node("D1", "deduction", {"P1"}), node("C1", "conclusion", {"D1"})};
+    auto r = Validator::validate(g);
+    REQUIRE(r.is_valid);
+    REQUIRE(r.errors.empty());
 }
 
-TEST_CASE("Circular dependency throws exception", "[validator]") {
-    AST::TheologicalGraph graph;
-    graph.title = "Circular Graph";
+TEST_CASE("Cycle is rejected", "[validator]") {
+    AST::TheologicalGraph g;
+    g.nodes = {node("A", "premise", {"C"}), node("B", "deduction", {"A"}), node("C", "conclusion", {"B"})};
+    auto r = Validator::validate(g);
+    REQUIRE_FALSE(r.is_valid);
+    REQUIRE(has_error_containing(r, "cycle"));
+}
 
-    // Creating a cycle: A -> B -> C -> A
-    AST::Node nodeA{"A", "Statement A", "premise", {}, {"C"}};
-    AST::Node nodeB{"B", "Statement B", "deduction", {}, {"A"}};
-    AST::Node nodeC{"C", "Statement C", "deduction", {}, {"B"}};
+TEST_CASE("Dangling reference is rejected", "[validator]") {
+    AST::TheologicalGraph g;
+    g.nodes = {node("P1", "premise", {}), node("C1", "conclusion", {"X9"})};
+    auto r = Validator::validate(g);
+    REQUIRE_FALSE(r.is_valid);
+    REQUIRE(has_error_containing(r, "non-existent node 'X9'"));
+}
 
-    graph.nodes = {nodeA, nodeB, nodeC};
+TEST_CASE("Duplicate ID is rejected", "[validator]") {
+    AST::TheologicalGraph g;
+    g.nodes = {node("P1", "premise", {}), node("P1", "premise", {}), node("C1", "conclusion", {"P1"})};
+    auto r = Validator::validate(g);
+    REQUIRE_FALSE(r.is_valid);
+    REQUIRE(has_error_containing(r, "Duplicate node ID"));
+}
 
-    REQUIRE_THROWS_AS(Theos::Validator::validate_graph(graph), std::runtime_error);
+TEST_CASE("Missing premise and conclusion are rejected", "[validator]") {
+    AST::TheologicalGraph g;
+    g.nodes = {node("D1", "deduction", {})};
+    auto r = Validator::validate(g);
+    REQUIRE(has_error_containing(r, "premise"));
+    REQUIRE(has_error_containing(r, "conclusion"));
 }

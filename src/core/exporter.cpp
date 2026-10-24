@@ -1,7 +1,24 @@
 #include "theos/exporter.hpp"
+#include <set>
 #include <sstream>
 
 namespace Theos::Exporter {
+
+namespace {
+// Mermaid labels are double-quoted; entity codes keep quotes and brackets from ending them
+std::string escape_label(const std::string& text) {
+    std::string out;
+    for (char c : text) {
+        switch (c) {
+            case '"': out += "#quot;"; break;
+            case '<': out += "#lt;"; break;
+            case '>': out += "#gt;"; break;
+            default: out += c;
+        }
+    }
+    return out;
+}
+} // namespace
 
 std::string to_mermaid(const AST::TheologicalGraph& graph) {
     std::ostringstream ss;
@@ -15,7 +32,7 @@ std::string to_mermaid(const AST::TheologicalGraph& graph) {
     // Render nodes with escaped text and styling classes
     for (const auto& node : graph.nodes) {
         // Format: NodeID["Node Text"]
-        ss << "    " << node.id << "[\"" << node.id << ": " << node.text << "\"];\n";
+        ss << "    " << node.id << "[\"" << node.id << ": " << escape_label(node.text) << "\"];\n";
 
         // Apply class based on type
         if (node.type == "premise") {
@@ -29,9 +46,9 @@ std::string to_mermaid(const AST::TheologicalGraph& graph) {
 
     ss << "\n    %% Dependencies and Support Edges\n";
     for (const auto& node : graph.nodes) {
-        // Combine supports and depends_on edges
-        std::vector<std::string> parents = node.supports;
-        parents.insert(parents.end(), node.depends_on.begin(), node.depends_on.end());
+        // Combine supports and depends_on edges, each parent once
+        std::set<std::string> parents(node.supports.begin(), node.supports.end());
+        parents.insert(node.depends_on.begin(), node.depends_on.end());
 
         for (const auto& parent : parents) {
             ss << "    " << parent << " --> " << node.id << ";\n";

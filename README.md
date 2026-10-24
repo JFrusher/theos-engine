@@ -48,53 +48,28 @@ To ensure memory efficiency and lightning-fast loading, the `.theos` format util
 
 ## CLI Usage
 
-The `theosc` command-line interface provides simple subcommands for compiling, validating, and inspecting proof graphs:
-
-### Export to Mermaid.js Diagram
-
-```powershell
-theosc export examples\aquinas_first_way.theo --format mermaid -o diagram.md
-
-```
-
-### Compile to Binary (`.theos`)
-
-```powershell
-theosc export examples\aquinas_first_way.theo --format binary -o aquinas.theos
-
-```
-
-### Inspect a Compiled Binary Proof
-
-```powershell
+```sh
+theosc export examples/aquinas_first_way.theo --format mermaid -o diagram.md
+theosc export examples/aquinas_first_way.theo --format binary -o aquinas.theos
 theosc inspect aquinas.theos
-
 ```
 
----
-
-## Project Structure
-
-```text
-theos-engine/
-├── include/theos/       # Public headers (ast.hpp, parser.hpp, validator.hpp, exporter.hpp, format.hpp)
-├── src/
-│   ├── core/            # Core library implementation (parser, validator, binary format)
-│   └── cli/             # CLI command router and entry point (main.cpp)
-├── examples/            # Sample .theo proof graphs (e.g., aquinas_first_way.theo)
-├── build/               # Build output directory (ignored by git)
-└── CMakeLists.txt       # CMake build configuration
-
-```
+Diagnostics go to stderr; exit code 0 = success, 1 = invalid input, 2 = usage error.
 
 ---
 
 ## Building from Source
 
-Requires a C++20 compatible compiler and CMake.
+Requires CMake 3.20+ and a C++23 compiler (GCC 13+, Clang 18+, or MinGW-w64 GCC 13+ via MSYS2).
+Tests use Catch2, fetched automatically by CMake.
 
-```powershell
-cmake -B build -G "MinGW Makefiles"
+```sh
+cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-
+ctest --test-dir build --output-on-failure
+./build/theosc
 ```
+
+On Windows, run the same commands from an MSYS2 UCRT64 shell (add `-G "MinGW Makefiles"` or `-G Ninja` if needed).
+
+See [ROADMAP.md](ROADMAP.md) for where the project is going. Licensed under the [MIT License](LICENSE).
