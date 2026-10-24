@@ -3,6 +3,9 @@
 #include "theos/driver.hpp"
 #include "theos/exporter.hpp"
 #include "theos/site.hpp"
+#include "theos/logic.hpp"
+#include "theos/smt.hpp"
+#include "theos/types.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -22,7 +25,8 @@ constexpr const char* usage =
     "\n"
     "Usage:\n"
     "  theosc check   <file.theo>\n"
-    "  theosc export  <file.theo> --format mermaid [-o <out>]\n"
+    "  theosc export  <file.theo> --format <mermaid|smtlib> [-o <out>]\n"
+    "  theosc prove   <file.theo>          (every inference through Z3)\n"
     "  theosc build   <file.theo> [-o <out.theos>]\n"
     "  theosc inspect <file.theos> [--chunks]\n"
     "  theosc analyze <file.theo>...\n"
@@ -192,8 +196,8 @@ int run(const Args& args) {
     if (args.command == "inspect") return inspect(args);
     if (args.command == "analyze") return analyze(args);
     if (args.command == "site") return site(args);
-    if (args.command != "check" && args.command != "export" && args.command != "build") return EXIT_USAGE;
-    if (args.command == "export" && args.format != "mermaid") return EXIT_USAGE;
+    if (args.command != "check" && args.command != "export" && args.command != "build" && args.command != "prove") return EXIT_USAGE;
+    if (args.command == "export" && args.format != "mermaid" && args.format != "smtlib") return EXIT_USAGE;
 
     auto result = Theos::Driver::check_file(args.input, args.options);
     std::cerr << Theos::Driver::render_diagnostics(result);
@@ -210,8 +214,40 @@ int run(const Args& args) {
         write_bytes(out, Theos::Binary::encode(*result.doc));
         return 0;
     }
-    write_text(args.output, Theos::Exporter::to_mermaid(*result.doc));
-    return 0;
+    if (args.command == "export" && args.format == "mermaid") {
+        write_text(args.output, Theos::Exporter::to_mermaid(*result.doc));
+        return 0;
+    }
+
+    // smtlib export and prove share one script per inferred node
+    const auto& doc = *result.doc;
+    const Theos::Logic::Definitions defs(doc.definitions);
+    const auto signature = Theos::Types::check(doc).signature;
+    std::string scripts;
+    int failures = 0;
+    for (const auto& node : doc.nodes) {
+        if (node.kind == Theos::AST::NodeKind::Premise || node.imported) continue;
+        std::vector<Theos::ExprPtr> premises;
+        for (const auto& r : node.from) {
+            for (const auto& n : doc.nodes) {
+                if (n.id == r.name) premises.push_back(defs.expand(n.formula));
+            }
+        }
+        const std::string smt = Theos::Smt::script(premises, defs.expand(node.formula), signature);
+        if (args.command == "export") {
+            scripts += "; ---- " + node.id + "\n" + smt;
+            continue;
+        }
+        const auto verdict = Theos::Smt::run_z3(smt);
+        switch (verdict.outcome) {
+            case Theos::Smt::Outcome::Valid: std::cout << node.id << ": valid\n"; break;
+            case Theos::Smt::Outcome::Invalid: std::cout << node.id << ": invalid; countermodel:\n" << verdict.detail; ++failures; break;
+            case Theos::Smt::Outcome::Unknown: std::cout << node.id << ": unknown (" << verdict.detail << ")\n"; ++failures; break;
+            case Theos::Smt::Outcome::Unavailable: std::cerr << "error: " << verdict.detail << "\n"; return EXIT_INVALID;
+        }
+    }
+    if (args.command == "export") write_text(args.output, scripts);
+    return failures ? EXIT_INVALID : 0;
 }
 
 } // namespace

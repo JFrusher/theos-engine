@@ -2,6 +2,8 @@
 #include "theos/logic.hpp"
 #include "theos/proof_checker.hpp"
 #include "theos/s5.hpp"
+#include "theos/smt.hpp"
+#include "theos/types.hpp"
 #include "theos/truth_table.hpp"
 #include <unordered_map>
 
@@ -55,11 +57,27 @@ Diagnostics decide(const AST::Node& node, const Proofs::Goal& goal, const Logic:
     return {};
 }
 
+Diagnostics prove(const AST::Node& node, const Proofs::Goal& goal, const Logic::Definitions& defs, const Types::Signature& sig,
+                  const std::string& file) {
+    std::vector<ExprPtr> premises;
+    for (const auto& [id, f] : goal.premises) premises.push_back(defs.expand(f));
+    const auto verdict = Smt::run_z3(Smt::script(premises, defs.expand(goal.formula), sig));
+    auto error = [&](std::string message) { return Diagnostics{{Severity::Error, file, node.rule->span, std::move(message)}}; };
+    switch (verdict.outcome) {
+        case Smt::Outcome::Valid: return {};
+        case Smt::Outcome::Invalid: return error(node.id + " does not follow from " + list_premises(goal) + ": Z3 found a countermodel");
+        case Smt::Outcome::Unknown: return error(node.id + ": " + verdict.detail + "; give a proof instead");
+        case Smt::Outcome::Unavailable: return error(node.id + ": " + verdict.detail);
+    }
+    return {};
+}
+
 } // namespace
 
 Diagnostics check(const AST::Document& doc) {
     Diagnostics diags;
     const Logic::Definitions defs(doc.definitions);
+    const Types::Signature signature = Types::check(doc).signature;
     std::unordered_map<std::string, const AST::Node*> by_id;
     for (const auto& n : doc.nodes) by_id.emplace(n.id, &n);
 
@@ -73,6 +91,7 @@ Diagnostics check(const AST::Document& doc) {
 
         Diagnostics found;
         if (node.proof) found = Proofs::check(*node.proof, goal);
+        else if (node.rule && node.rule->name == "z3") found = prove(node, goal, defs, signature, doc.file);
         else if (node.rule) found = Proofs::check(Proofs::single_step(*node.rule, goal), goal);
         else found = decide(node, goal, defs, doc.file);
         diags.insert(diags.end(), found.begin(), found.end());

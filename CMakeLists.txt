@@ -40,6 +40,7 @@ add_library(theos_core STATIC
     src/core/proof_checker.cpp
     src/core/s5.cpp
     src/core/site.cpp
+    src/core/smt.cpp
     src/core/truth_table.cpp
     src/core/types.cpp
     src/core/validator.cpp

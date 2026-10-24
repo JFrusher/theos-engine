@@ -23,7 +23,8 @@ The logic checker proves that every deduction and conclusion follows from the no
 propositional inferences are decided by truth table and propositional modal ones by an S5 tableau
 (each with a counterexample when they fail), and anything richer is checked line by line as a Fitch-style natural-deduction proof covering
 propositional, first-order, identity, S5 modal and higher-order (property) reasoning. The rules are
-specified in [docs/spec/proofs.md](docs/spec/proofs.md).
+specified in [docs/spec/proofs.md](docs/spec/proofs.md). Any inference can also be handed to the
+Z3 SMT solver (`by z3`, or `theosc prove` for a second opinion); see [docs/spec/smt.md](docs/spec/smt.md).
 
 The library (`library/arguments/`) holds ten formalized arguments: Aquinas's First and Third Ways,
 Anselm, the kalam argument, Leibniz's contingency argument, the moral argument, the resurrection,
@@ -96,6 +97,8 @@ theosc build   library/arguments/resurrection.theo -o resurrection.theos
 theosc inspect resurrection.theos            # decoded argument
 theosc inspect resurrection.theos --chunks   # chunk table and hex view
 theosc analyze library/arguments/*.theo            # dependencies, unused citations, objections
+theosc prove   library/arguments/godel.theo        # second opinion from the Z3 SMT solver
+theosc export  library/arguments/kalam.theo --format smtlib   # the SMT-LIB scripts
 theosc site    library/arguments -o site/gallery   # static gallery pages
 ```
 
@@ -125,7 +128,9 @@ theos-engine/
 ## Building from Source
 
 Requires CMake 3.20+ and a C++23 compiler (GCC 13+, Clang 19+, or MinGW-w64 GCC 13+ via MSYS2).
-Tests use Catch2, fetched automatically by CMake.
+Tests use Catch2, fetched automatically by CMake. [Z3](https://github.com/Z3Prover/z3) is optional:
+it is needed for `by z3` and `theosc prove`, and its tests are skipped without it
+(`apt install z3`, or `pacman -S mingw-w64-ucrt-x86_64-z3` in MSYS2).
 
 ```sh
 cmake -B build -DCMAKE_BUILD_TYPE=Release

@@ -15,11 +15,17 @@ add_executable(theos_tests
     test_lexer.cpp
     test_parser.cpp
     test_proofs.cpp
+    test_smt.cpp
     test_types.cpp
     test_validator.cpp
 )
 target_link_libraries(theos_tests PRIVATE theos_core theos_warnings Catch2::Catch2WithMain)
 target_compile_definitions(theos_tests PRIVATE THEOS_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+# Tests that run Z3 are skipped when it is not installed
+find_program(THEOS_Z3_EXECUTABLE z3)
+if(THEOS_Z3_EXECUTABLE)
+    target_compile_definitions(theos_tests PRIVATE THEOS_HAVE_Z3)
+endif()
 
 include(${catch2_SOURCE_DIR}/extras/Catch.cmake)
 catch_discover_tests(theos_tests)
