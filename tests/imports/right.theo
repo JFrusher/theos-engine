@@ -1,0 +1,2 @@
+import "base"
+premise Right grounded_by [PNC] { text: "R." formula: R }

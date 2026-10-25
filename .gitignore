@@ -47,3 +47,16 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+/build*/
+!/tests/golden/**/*.theos
+!/fuzz/corpus/**/*.theos
+
+# libFuzzer artifacts
+crash-*
+leak-*
+timeout-*
+oom-*
+/web/dist/
+/site/
+/node_modules/
+/package-lock.json

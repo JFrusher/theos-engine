@@ -1,0 +1,25 @@
+// Standard library: first principles that arguments commonly rest on.
+// Import with: import "std/principles"
+
+axiom PNC      = principle("Nothing can both be and not be in the same respect at the same time.")
+axiom PSR      = principle("Whatever is contingent has an explanation of its existence.")
+axiom ExNihilo = principle("Nothing comes from nothing.")
+axiom Regress  = principle("An actually infinite regress of dependent causes is impossible.")
+
+define Contingent(x) := <>~Exists(x)
+define Necessary(x)  := []Exists(x)
+
+premise NonContradiction grounded_by [PNC] {
+    text:    "No proposition is both true and false."
+    formula: forall F:prop. forall x. ~(F(x) & ~F(x))
+}
+
+premise PSRPremise grounded_by [PSR] {
+    text:    "Every contingent being has an explanation of its existence."
+    formula: forall x. Contingent(x) -> exists y. Explains(y, x)
+}
+
+premise CausalPrinciple grounded_by [ExNihilo] {
+    text:    "Whatever begins to exist has a cause."
+    formula: forall x. Began(x) -> exists y. Causes(y, x)
+}

@@ -1,0 +1,13 @@
+argument "Uses the standard library"
+import "std/principles"
+premise P1 grounded_by [PSR] { text: "The universe is contingent." formula: Contingent(universe) }
+conclusion C1 from [P1, PSRPremise] {
+    text: "The universe has an explanation."
+    formula: exists y. Explains(y, universe)
+    proof {
+        1. Contingent(universe)                                     premise P1
+        2. forall x. Contingent(x) -> exists y. Explains(y, x)      premise PSRPremise
+        3. Contingent(universe) -> exists y. Explains(y, universe)  forall_e 2
+        4. exists y. Explains(y, universe)                          imp_e 3, 1
+    }
+}

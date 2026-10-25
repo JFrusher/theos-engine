@@ -1,0 +1,39 @@
+// The logical problem of evil: an argument against theism, checked like any
+// other. The free will defence and the exchange that followed are recorded.
+
+argument "The Logical Problem of Evil" by "J. L. Mackie"
+
+axiom Mackie    = source("J. L. Mackie, Evil and Omnipotence", "Mind 64 (1955)")
+axiom Theism    = principle("God, if God exists, is omnipotent and wholly good.")
+
+premise P1 grounded_by [Theism] {
+    text:    "If God exists, God is omnipotent and wholly good."
+    formula: God -> Omnipotent & WhollyGood
+}
+
+premise P2 grounded_by [Mackie] {
+    text:    "An omnipotent, wholly good being would eliminate every evil."
+    formula: Omnipotent & WhollyGood -> ~Evil
+}
+
+premise P3 grounded_by [Mackie] {
+    text:    "Evil exists."
+    formula: Evil
+}
+
+conclusion C1 from [P1, P2, P3] {
+    text:    "Therefore God does not exist."
+    formula: ~God
+}
+
+objection O1 against P2 {
+    text: "Free will defence (Plantinga, God, Freedom, and Evil, 1974): a world with free creatures who sometimes do wrong may be better than any world without them, and even omnipotence cannot make free creatures always choose well."
+}
+
+reply R1 to O1 {
+    text: "Mackie: God could have made creatures who freely always choose the good."
+}
+
+reply R2 to R1 {
+    text: "Plantinga: possibly every creature God could create suffers from transworld depravity, so such a world may not be within God's power to actualize."
+}

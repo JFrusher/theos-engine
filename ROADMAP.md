@@ -7,6 +7,9 @@ web playground and gallery.
 **Product goal:** portfolio showcase *and* a real tool. Every milestone should
 both demonstrate engineering skill and leave the tool more useful.
 
+**Status (2026-10-24): all ten phases are implemented** — see §7 for what each phase delivered
+and where it deviated from the plan. Section 1 records the state the project started from.
+
 **How to use this file:** each milestone is sized for one agentic coding session
 and lands as one PR. A milestone is done only when its acceptance criteria pass
 in CI. Do milestones in order inside a phase; phases depend on the ones before.
@@ -207,7 +210,7 @@ Size: **S** ≈ under 300 changed lines, **M** ≈ 300–1,000, **L** ≈ over 1
 
 **M6.1 Modal operators + ND rules** (L) — `[]`/`□`, `<>`/`◇`; S5 natural deduction with boxed subproofs; propositional S5 validity via tableau with countermodel (Kripke model) output. *Accept:* exercise suite; invalid argument prints a world/valuation countermodel.
 
-**M6.2 Ontological arguments** (S) — Plantinga's modal ontological argument (and Gödel's if quantified modal logic is in scope — see open questions) in the library. *Accept:* checks pass.
+**M6.2 Higher-order modal + ontological arguments** (L) — Property variables (`forall F:prop.`), λ-abstraction, `define` with a `conv` rule, Barcan rules for constant-domain S5. Plantinga's and Gödel's (Scott's version) ontological arguments fully proved in the library. *Accept:* `theosc check` passes on both.
 
 ### Phase 7 — Argument analysis
 
@@ -240,10 +243,33 @@ Size: **S** ≈ under 300 changed lines, **M** ≈ 300–1,000, **L** ≈ over 1
 
 ---
 
-## 6. Open questions
+## 6. Decision log
 
-1. **C++ standard:** `CLAUDE.md` says strict C++20 but also recommends `std::expected` (C++23). Move to C++23 (GCC 13+/MinGW-w64 supports it) or stay on C++20 and use exceptions + diagnostics lists?
-2. **License:** MIT/Apache-2.0 (maximizes use) or GPL/AGPL (keeps derivatives open)?
-3. **Quantified modal logic:** is Gödel's ontological argument (needs second-order + modal) a goal, or is propositional S5 + FOL enough?
-4. **Library content:** which arguments must be in 1.0 (Five Ways, Kalam, Anselm, Plantinga, Leibniz contingency, problem of evil as counter-argument…)?
-5. **Name/branding:** keep "Theos" / `.theo` / `.theos` for the final product?
+Answers to the original open questions (2026-10-24) and decisions made while building:
+
+| # | Decision |
+|---|----------|
+| 1 | **C++23.** `std::expected` for results that carry diagnostics; exceptions only for I/O and binary-format corruption. GCC 13+ / Clang 18+ / MinGW-w64 GCC 13+. |
+| 2 | **MIT license.** |
+| 3 | **Gödel's ontological argument is a 1.0 goal.** The formula language therefore includes property variables, property abstraction (λ) and definitions on top of first-order S5 (Phase 6). |
+| 4 | **Library for 1.0** must include Gödel; others chosen during Phase 7. |
+| 5 | **Names stay:** Theos, `theosc`, `.theo` source, `.theos` binary. |
+| 6 | **Gödel's axioms are necessary truths** (`[]...`), as Gödel and Scott intend; this is what lets T2 be necessitated and used in T3. |
+| 7 | **Constant domains and rigid names** for quantified S5 (Barcan formulas hold), the standard setting for both ontological arguments. |
+
+---
+
+## 7. Progress
+
+| Phase | Status |
+|-------|--------|
+| 0 Foundation | done |
+| 1 Language v2 | done — formulas are fully parsed already (needed to find where they end); the v1 binary format was removed here rather than in M2.2 because it was tied to the old AST; syntax errors stop at the first error, static-rule errors are all reported; Clang CI uses Clang 19, the first Clang that can use `std::expected` from libstdc++ 13 |
+| 2 Binary v2 | done — formulas, proofs and objections are serialized here (M3.4 folded in, since the AST already carries them); padding must be zero so every single-byte corruption is detected (verified by flipping every byte); nesting depth is capped in parser (256) and decoder (512) |
+| 3 Propositional logic | done — the natural-deduction checker already implements the full rule set (quantifiers, identity, S5, definitions, property variables) because the substitution machinery is shared and the Aquinas example needs first-order proofs to pass; formulas are immutable shared trees rather than hash-consed (structural sharing happens in the binary encoder); 39 exercises plus misuse tests; recursive definitions are rejected so expansion terminates |
+| 4 Web | done — Emscripten 3.1.74 build with wasm exceptions (embind `check` returning JSON); playground with live verdict, graph, glosses keyed to lines, shareable `#src=` links; `theosc site` gallery with Fitch-style proof rendering; Node and Playwright smoke tests; Pages deployment needs Pages enabled ("GitHub Actions" source) in repository settings |
+| 5 First-order logic | done — sort checker (docs/spec/language.md §6) infers one type per free name across nodes, proofs, objections and definitions, and runs before proof checking; `library/arguments/` holds the gallery set (Aquinas, kalam, resurrection) and `examples/` holds teaching examples, including one invalid on purpose |
+| 6 Modal logic | done — S5 tableau (non-branching rules first, 200k-step budget) decides propositional modal inferences with Kripke countermodels; Plantinga's argument is checked by it with no hand proof; Gödel's argument (Scott's version) is fully proved in natural deduction: T1, the corollary, T2 and T3, mutation-tested; Gödel's axioms are stated as necessary truths so proofs may use them inside strict subproofs |
+| 7 Argument analysis | done — imports with cycle detection and diamond merging, each imported file checked in its own right, `-L` search dirs and a bundled standard library (also in the browser build); Dung grounded semantics for objections and replies with defeat propagated along inferences; `theosc analyze`; the library reaches ten arguments, two of which are dialectically contested |
+| 8 Z3 auto-prover | done — SMT-LIB translation with individuals, worlds (S5 as universal quantification), properties with an application predicate and one comprehension axiom per λ; Z3 run as an external program (no link dependency, works on MinGW); `by z3`, `theosc prove`, `export --format smtlib`; Z3 confirms every library inference except Gödel's T3 (unknown within 20 s), which stands on its natural-deduction proof; tests show Z3 also rejects invalid inferences, so the encoding is not trivially inconsistent |
+| 9 Release 1.0 | done — specs marked frozen, CHANGELOG, user guide with a tutorial whose final file is tested, `--version`, install layout with the library found relative to the executable, tag-triggered release workflow building Linux and Windows archives |

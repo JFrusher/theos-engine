@@ -1,0 +1,55 @@
+// Leibniz's argument from contingency. The principle of sufficient reason comes
+// from the standard library; the argument adds that the universe is contingent
+// and that only God could explain it.
+
+argument "The Argument from Contingency" by "G. W. Leibniz"
+
+import "std/principles"
+
+axiom Monadology  = source("G. W. Leibniz, Monadology", "§§ 36–38")
+axiom Origination = source("G. W. Leibniz, On the Ultimate Origination of Things", "1697")
+
+premise P2 grounded_by [Monadology] {
+    text:    "The universe is contingent: it might not have existed."
+    formula: Contingent(universe)
+}
+
+premise P3 grounded_by [Origination] {
+    text:    "Whatever explains the existence of the universe is a necessary being beyond it, which is God."
+    formula: forall y. Explains(y, universe) -> God(y)
+}
+
+deduction D1 from [PSRPremise, P2] {
+    text:    "Therefore the universe has an explanation of its existence."
+    formula: exists y. Explains(y, universe)
+    proof {
+        1. forall x. Contingent(x) -> exists y. Explains(y, x)      premise PSRPremise
+        2. Contingent(universe)                                     premise P2
+        3. Contingent(universe) -> exists y. Explains(y, universe)  forall_e 1
+        4. exists y. Explains(y, universe)                          imp_e 3, 2
+    }
+}
+
+conclusion C1 from [D1, P3] {
+    text:    "Therefore God exists."
+    formula: exists y. God(y)
+    proof {
+        1. exists y. Explains(y, universe)                 premise D1
+        2. forall y. Explains(y, universe) -> God(y)       premise P3
+        { [e]
+            3. Explains(e, universe)                       assume
+            4. Explains(e, universe) -> God(e)             forall_e 2
+            5. God(e)                                      imp_e 4, 3
+            6. exists y. God(y)                            exists_i 5
+        }
+        7. exists y. God(y)                                exists_e 1, 3-6
+    }
+}
+
+objection O1 against P3 {
+    text: "The universe might be explained by a further contingent cause, or by itself as a brute fact."
+}
+
+reply R1 to O1 {
+    text: "A further contingent cause is part of the universe and needs explaining in turn; a brute fact is no explanation at all."
+}

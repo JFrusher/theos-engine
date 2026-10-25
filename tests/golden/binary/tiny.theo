@@ -1,0 +1,18 @@
+argument "Tiny" by "Spec"
+
+axiom J = scripture(protestant, "John 1:1")
+
+premise P1 grounded_by [J] {
+    text: "A"
+    formula: A -> B
+}
+
+premise P2 grounded_by [J] {
+    text: "B"
+    formula: A
+}
+
+conclusion C1 from [P1, P2] by imp_e {
+    text: "C"
+    formula: B
+}

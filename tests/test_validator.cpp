@@ -1,34 +1,121 @@
 #include <catch2/catch_test_macros.hpp>
-#include "theos/ast.hpp"
+#include <catch2/matchers/catch_matchers_string.hpp>
+#include "theos/driver.hpp"
+#include <filesystem>
 
-// Forward declaration of validator function
-namespace Theos::Validator {
-    void validate_graph(const AST::TheologicalGraph& graph);
+using namespace Theos;
+
+namespace {
+Diagnostics diagnose(std::string src) {
+    auto r = Driver::check_source(std::move(src), "v.theo");
+    REQUIRE(r.doc.has_value());
+    return r.diagnostics;
 }
 
-TEST_CASE("Valid theological DAG passes validation", "[validator]") {
-    AST::TheologicalGraph graph;
-    graph.title = "Test Graph";
-
-    AST::Node p1{"P1", "Premise one", "premise", {}, {}};
-    AST::Node d1{"D1", "Deduction based on P1", "deduction", {}, {"P1"}};
-    AST::Node c1{"C1", "Conclusion based on D1", "conclusion", {}, {"D1"}};
-
-    graph.nodes = {p1, d1, c1};
-
-    REQUIRE_NOTHROW(Theos::Validator::validate_graph(graph));
+bool has(const Diagnostics& diags, Severity sev, const std::string& needle) {
+    for (const auto& d : diags) {
+        if (d.severity == sev && d.message.find(needle) != std::string::npos) return true;
+    }
+    return false;
 }
 
-TEST_CASE("Circular dependency throws exception", "[validator]") {
-    AST::TheologicalGraph graph;
-    graph.title = "Circular Graph";
+constexpr const char* valid = R"(
+argument "A"
+axiom S = principle("s")
+premise P1 grounded_by [S] { text: "p" formula: A }
+premise P2 grounded_by [S] { text: "q" formula: A -> B }
+conclusion C1 from [P1, P2] { text: "c" formula: B }
+)";
+} // namespace
 
-    // Creating a cycle: A -> B -> C -> A
-    AST::Node nodeA{"A", "Statement A", "premise", {}, {"C"}};
-    AST::Node nodeB{"B", "Statement B", "deduction", {}, {"A"}};
-    AST::Node nodeC{"C", "Statement C", "deduction", {}, {"B"}};
+TEST_CASE("Valid argument has no diagnostics", "[validator]") {
+    REQUIRE(diagnose(valid).empty());
+}
 
-    graph.nodes = {nodeA, nodeB, nodeC};
+TEST_CASE("Duplicate names", "[validator]") {
+    auto d = diagnose(R"(
+axiom X = principle("s")
+premise X { text: "p" formula: A }
+)");
+    REQUIRE(has(d, Severity::Error, "'X' is already defined"));
+}
 
-    REQUIRE_THROWS_AS(Theos::Validator::validate_graph(graph), std::runtime_error);
+TEST_CASE("References must name the right kind of item", "[validator]") {
+    auto d = diagnose(R"(
+axiom S = principle("s")
+premise P1 grounded_by [P1] { text: "p" formula: A }
+deduction D1 from [S, Nope] { text: "d" formula: A }
+objection O1 against S { text: "o" }
+reply R1 to P1 { text: "r" }
+)");
+    REQUIRE(has(d, Severity::Error, "'grounded_by' names 'P1', which is a node"));
+    REQUIRE(has(d, Severity::Error, "'from' names 'S', which is an axiom"));
+    REQUIRE(has(d, Severity::Error, "'Nope' is not defined"));
+    REQUIRE(has(d, Severity::Error, "objection targets 'S', which is an axiom"));
+    REQUIRE(has(d, Severity::Error, "reply targets 'P1', which is a node"));
+}
+
+TEST_CASE("Node kind rules", "[validator]") {
+    auto d = diagnose(R"(
+premise P0 { text: "p" formula: A }
+premise P1 from [P0] by imp_e { text: "p" formula: A }
+deduction D1 { text: "d" formula: A }
+conclusion C1 from [P0] by imp_e { text: "c" formula: A proof { 1. A premise P0 } }
+)");
+    REQUIRE(has(d, Severity::Error, "premise 'P1' cannot have 'from'"));
+    REQUIRE(has(d, Severity::Error, "premise 'P1' cannot have 'by'"));
+    REQUIRE(has(d, Severity::Error, "deduction 'D1' needs 'from'"));
+    REQUIRE(has(d, Severity::Error, "has both 'by' and a proof"));
+    REQUIRE(has(d, Severity::Warning, "premise 'P0' is not grounded"));
+}
+
+TEST_CASE("Cycles are circular reasoning", "[validator]") {
+    auto d = diagnose(R"(
+premise P { text: "p" formula: A }
+deduction A1 from [P, B1] { text: "a" formula: A }
+deduction B1 from [A1] { text: "b" formula: A }
+)");
+    REQUIRE(has(d, Severity::Error, "circular reasoning"));
+}
+
+TEST_CASE("Argument files need premises and conclusions", "[validator]") {
+    auto d = diagnose("argument \"Empty\"\n");
+    REQUIRE(has(d, Severity::Error, "has no conclusion"));
+    REQUIRE(has(d, Severity::Error, "has no premise"));
+}
+
+TEST_CASE("Unused nodes are warned about in argument files", "[validator]") {
+    auto d = diagnose(std::string(valid) + "premise P9 grounded_by [S] { text: \"x\" formula: X }\n");
+    REQUIRE(has(d, Severity::Warning, "premise 'P9' is not used by any conclusion"));
+}
+
+TEST_CASE("Scripture references are checked and resolved", "[validator]") {
+    auto r = Driver::check_source(R"(
+axiom A = scripture(protestant, "Psalms 102:25")
+axiom B = scripture(protestant, "Psalms 200:1")
+axiom C = scripture(lutheran, "John 1:1")
+)", "s.theo");
+    REQUIRE(r.doc->axioms[0].scripture.book == 19);
+    REQUIRE(has(r.diagnostics, Severity::Error, "chapter out of range in 'Psalms 200:1': Psalms has 150 chapters"));
+    REQUIRE(has(r.diagnostics, Severity::Error, "unknown canon 'lutheran'"));
+}
+
+TEST_CASE("Library arguments and examples check", "[validator][examples]") {
+    namespace fs = std::filesystem;
+    for (const char* dir : {"library/arguments", "examples"}) {
+        for (const auto& e : fs::directory_iterator(fs::path(THEOS_SOURCE_DIR) / dir)) {
+            if (e.path().extension() != ".theo") continue;
+            auto r = Driver::check_file(e.path().string());
+            INFO(e.path().string() << "\n" << Driver::render_diagnostics(r));
+            // affirming_the_consequent.theo is invalid on purpose
+            REQUIRE(r.ok() == (e.path().stem() != "affirming_the_consequent"));
+        }
+    }
+}
+
+TEST_CASE("Definitions may only use earlier definitions", "[validator]") {
+    auto d = diagnose("define G(x) := G(x)\ndefine A := B\ndefine B := C\n");
+    REQUIRE(has(d, Severity::Error, "definition 'G' refers to itself"));
+    REQUIRE(has(d, Severity::Error, "definition 'A' refers to 'B', which is defined later"));
+    REQUIRE(diagnose("define B := C\ndefine A := B\n").empty());
 }

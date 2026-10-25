@@ -1,0 +1,102 @@
+#include "theos/checker.hpp"
+#include "theos/logic.hpp"
+#include "theos/proof_checker.hpp"
+#include "theos/s5.hpp"
+#include "theos/smt.hpp"
+#include "theos/types.hpp"
+#include "theos/truth_table.hpp"
+#include <unordered_map>
+
+namespace Theos::Checker {
+
+namespace {
+
+std::string list_premises(const Proofs::Goal& goal) {
+    std::string out;
+    for (size_t i = 0; i < goal.premises.size(); ++i) out += (i ? ", " : "") + goal.premises[i].first;
+    return out;
+}
+
+Diagnostics decide(const AST::Node& node, const Proofs::Goal& goal, const Logic::Definitions& defs, const std::string& file) {
+    std::vector<ExprPtr> premises;
+    for (const auto& [id, f] : goal.premises) premises.push_back(defs.expand(f));
+    const ExprPtr conclusion = defs.expand(goal.formula);
+    std::vector<ExprPtr> all = premises;
+    all.push_back(conclusion);
+
+    auto error = [&](std::string message) { return Diagnostics{{Severity::Error, file, node.span, std::move(message)}}; };
+
+    switch (Logic::classify(all)) {
+        case Logic::Fragment::Propositional: {
+            auto result = TruthTable::entails(premises, conclusion);
+            if (!result) return error(node.id + ": " + result.error());
+            if (result->valid) return {};
+            std::string model;
+            for (const auto& [atom, value] : result->countermodel) model += (model.empty() ? "" : ", ") + atom + " = " + (value ? "true" : "false");
+            return error(node.id + " does not follow from " + list_premises(goal) + ": counterexample " + model);
+        }
+        case Logic::Fragment::PropositionalModal: {
+            const auto decided = S5::entails(premises, conclusion);
+            if (!decided) return error(node.id + ": " + decided.error());
+            const auto& result = *decided;
+            if (result.valid) return {};
+            std::string model;
+            for (size_t w = 0; w < result.countermodel.size(); ++w) {
+                model += (w ? "; in w" : "in w") + std::to_string(w) + (w == 0 ? " (actual)" : "");
+                for (size_t i = 0; i < result.countermodel[w].size(); ++i) {
+                    const auto& [atom, value] = result.countermodel[w][i];
+                    model += (i ? ", " : " ") + atom + " = " + (value ? "true" : "false");
+                }
+            }
+            return error(node.id + " does not follow from " + list_premises(goal) + " in S5: counterexample with " +
+                         std::to_string(result.countermodel.size()) + " world" + (result.countermodel.size() == 1 ? "" : "s") + ", " + model);
+        }
+        case Logic::Fragment::Higher:
+            return error(node.id + ": this inference involves quantifiers, identity or properties; justify it with a proof { ... } or 'by <rule>'");
+    }
+    return {};
+}
+
+Diagnostics prove(const AST::Node& node, const Proofs::Goal& goal, const Logic::Definitions& defs, const Types::Signature& sig,
+                  const std::string& file) {
+    std::vector<ExprPtr> premises;
+    for (const auto& [id, f] : goal.premises) premises.push_back(defs.expand(f));
+    const auto verdict = Smt::run_z3(Smt::script(premises, defs.expand(goal.formula), sig));
+    auto error = [&](std::string message) { return Diagnostics{{Severity::Error, file, node.rule->span, std::move(message)}}; };
+    switch (verdict.outcome) {
+        case Smt::Outcome::Valid: return {};
+        case Smt::Outcome::Invalid: return error(node.id + " does not follow from " + list_premises(goal) + ": Z3 found a countermodel");
+        case Smt::Outcome::Unknown: return error(node.id + ": " + verdict.detail + "; give a proof instead");
+        case Smt::Outcome::Unavailable: return error(node.id + ": " + verdict.detail);
+    }
+    return {};
+}
+
+} // namespace
+
+Diagnostics check(const AST::Document& doc) {
+    Diagnostics diags;
+    const Logic::Definitions defs(doc.definitions);
+    const Types::Signature signature = Types::check(doc).signature;
+    std::unordered_map<std::string, const AST::Node*> by_id;
+    for (const auto& n : doc.nodes) by_id.emplace(n.id, &n);
+
+    for (const auto& node : doc.nodes) {
+        if (node.kind == AST::NodeKind::Premise || node.imported) continue;
+        Proofs::Goal goal;
+        goal.file = doc.file;
+        goal.formula = node.formula;
+        goal.definitions = &defs;
+        for (const auto& r : node.from) goal.premises.emplace_back(r.name, by_id.at(r.name)->formula);
+
+        Diagnostics found;
+        if (node.proof) found = Proofs::check(*node.proof, goal);
+        else if (node.rule && node.rule->name == "z3") found = prove(node, goal, defs, signature, doc.file);
+        else if (node.rule) found = Proofs::check(Proofs::single_step(*node.rule, goal), goal);
+        else found = decide(node, goal, defs, doc.file);
+        diags.insert(diags.end(), found.begin(), found.end());
+    }
+    return diags;
+}
+
+} // namespace Theos::Checker

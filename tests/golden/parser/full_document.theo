@@ -1,0 +1,38 @@
+argument "Golden" by "Tests"
+
+
+axiom S = scripture(catholic, "Wisdom 13:1-9")
+axiom W = source("Aristotle, Physics", "VIII.5")
+axiom N = principle("Nothing comes from nothing.")
+
+define Contingent(x) := <>~Exists(x)
+define G(x) := forall F:prop. Positive(F) -> F(x)
+
+premise P1 grounded_by [S, W] {
+    text: "Some things are contingent."
+    formula: ∃x. Contingent(x)
+}
+
+premise P2 grounded_by [N] {
+    text: "Contingent things need a cause."
+    formula: forall x. Contingent(x) -> exists y. (Causes(y, x) & x != y)
+}
+
+conclusion C1 from [P1, P2] {
+    text: "Something causes something."
+    formula: exists x y. Causes(y, x)
+    proof {
+        1. exists x. Contingent(x)   premise P1
+        { [a]
+          2. Contingent(a)             assume
+          3. Contingent(a) -> exists y. (Causes(y, a) & a != y)   forall_e P2
+        }
+        box {
+          4. []A  reit 1
+        }
+        5. exists x y. Causes(y, x)  exists_e 1, 2-4
+    }
+}
+
+objection O1 against P2 { text: "Causation might be an illusion." }
+reply R1 to O1 { text: "Then so is the objection's motivation." formula: ~Illusion }

@@ -1,6 +1,10 @@
 # Theos Engine (`theosc`)
 
-A high-performance C++20 engine and CLI toolchain designed to parse, logically validate, and serialize formal theological and philosophical arguments.
+[![CI](https://github.com/JFrusher/theos-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/JFrusher/theos-engine/actions/workflows/ci.yml)
+[![Web](https://github.com/JFrusher/theos-engine/actions/workflows/web.yml/badge.svg)](https://github.com/JFrusher/theos-engine/actions/workflows/web.yml)
+
+A C++23 engine and CLI for writing, checking and visualizing formal theological and philosophical arguments.
+New here? Start with the **[user guide](docs/guide.md)**.
 
 ---
 
@@ -12,64 +16,98 @@ Theos bridges this gap. It provides a deterministic pipeline to turn human-reada
 
 ---
 
-## Architecture & Pipeline
-
-The system operates on an end-to-end compilation pipeline:
+## Pipeline
 
 ```
-[ .theo Source ] 
-       │
-       ▼
-  Parser (AST)
-       │
-       ▼
- Validator (DFS Cycle & Integrity Check)
-       ├───► Exporter (Mermaid.js / Diagrams)
-       └───► Binary Serializer ───► [ .theos Binary Format ]
-
+.theo source ─► Lexer ─► Parser ─► AST ─► Validator ─► Logic checker ─┬─► Mermaid exporter
+                                                                       └─► .theos binary (encode / decode)
 ```
 
-1. **Parser:** Ingests human-readable `.theo` DSL files into a typed abstract syntax tree (AST) representing nodes (premises, deductions, conclusions) and foundational axioms.
-2. **Validator:** Executes graph-level checks, including cycle detection and referential integrity verification, ensuring that circular dependencies or dangling references are caught before export.
-3. **Serializer (`.theos`):** Packs validated graphs into a custom binary layout optimized for fast zero-overhead loading.
+The logic checker proves that every deduction and conclusion follows from the nodes it cites:
+propositional inferences are decided by truth table and propositional modal ones by an S5 tableau
+(each with a counterexample when they fail), and anything richer is checked line by line as a Fitch-style natural-deduction proof covering
+propositional, first-order, identity, S5 modal and higher-order (property) reasoning. The rules are
+specified in [docs/spec/proofs.md](docs/spec/proofs.md). Any inference can also be handed to the
+Z3 SMT solver (`by z3`, or `theosc prove` for a second opinion); see [docs/spec/smt.md](docs/spec/smt.md).
+
+The library (`library/arguments/`) holds ten formalized arguments: Aquinas's First and Third Ways,
+Anselm, the kalam argument, Leibniz's contingency argument, the moral argument, the resurrection,
+Plantinga's modal ontological argument, Mackie's logical problem of evil, and **Gödel's ontological
+argument in Scott's version**, every step of which is machine-checked in higher-order S5.
+Objections and replies are evaluated with Dung's grounded semantics, so each page shows which
+claims survive the recorded debate ([docs/spec/analysis.md](docs/spec/analysis.md)).
+
+Arguments can `import` each other and the standard library (`library/std/`), e.g.
+`import "std/principles"` for the principle of sufficient reason.
+
+Each claim in a `.theo` file carries natural-language text and a formula:
+
+```theo
+argument "Modus Ponens Demo"
+
+axiom Obs = source("Field notes", "p. 4")
+
+premise P1 grounded_by [Obs] {
+    text:    "If it rains, the street is wet."
+    formula: Rain -> Wet
+}
+
+premise P2 grounded_by [Obs] {
+    text:    "It rains."
+    formula: Rain
+}
+
+conclusion C1 from [P1, P2] by imp_e {
+    text:    "The street is wet."
+    formula: Wet
+}
+```
+
+The full language is specified in [docs/spec/language.md](docs/spec/language.md).
 
 ---
 
 ## The `.theos` Binary Format
 
-To ensure memory efficiency and lightning-fast loading, the `.theos` format utilizes a structured layout separated into fixed-size tables and a memory-pooled string heap:
+`theosc build` compiles a checked argument into a `.theos` file, specified in
+[docs/spec/theos-v2.md](docs/spec/theos-v2.md):
 
-* **Header (`TheosHeader`):** 32-byte fixed header featuring magic bytes (`0x5448454F` / `"THEO"`), version metadata, element counts, and exact byte offsets for tables.
-* **Axiom Table:** Packed records linking philosophical/scriptural citations, chapter indices, and verse ranges.
-* **Node Table:** Typed graph nodes containing unique identifiers, classification tags, text payloads, and dynamic support/dependency vectors.
-* **String Heap:** A contiguous null-terminated character pool referenced via zero-copy byte offsets, eliminating internal pointer bloat.
+- PNG-style signature (`89 54 48 45 4F 0D 0A 1A`) that detects text-mode corruption
+- Tagged, CRC-32-protected chunks; unknown ancillary chunks are skipped, unknown critical chunks rejected
+- Fixed-width little-endian records referencing each other by index, for O(1) access
+- One deduplicated string table and one expression table with shared sub-formulas
+- A reader that bounds-checks every offset and index, fuzzed with libFuzzer in CI
+
+---
+
+## On the web
+
+The `Web` workflow publishes two things to GitHub Pages:
+
+- **Playground**: write an argument in the browser and see the verdict, the graph and every diagnostic as you type. The checker runs locally as WebAssembly.
+- **Gallery**: one page per argument with its graph, sources, Fitch-style proofs, and objections, generated by `theosc site`.
+
+See [web/README.md](web/README.md) to build them locally.
 
 ---
 
 ## CLI Usage
 
-The `theosc` command-line interface provides simple subcommands for compiling, validating, and inspecting proof graphs:
-
-### Export to Mermaid.js Diagram
-
-```powershell
-theosc export examples\aquinas_first_way.theo --format mermaid -o diagram.md
-
+```sh
+theosc check   library/arguments/aquinas_first_way.theo
+theosc check   examples/affirming_the_consequent.theo     # rejected, with a counterexample
+theosc export  library/arguments/resurrection.theo --format mermaid -o resurrection.mmd
+theosc build   library/arguments/resurrection.theo -o resurrection.theos
+theosc inspect resurrection.theos            # decoded argument
+theosc inspect resurrection.theos --chunks   # chunk table and hex view
+theosc analyze library/arguments/*.theo            # dependencies, unused citations, objections
+theosc prove   library/arguments/godel.theo        # second opinion from the Z3 SMT solver
+theosc export  library/arguments/kalam.theo --format smtlib   # the SMT-LIB scripts
+theosc site    library/arguments -o site/gallery   # static gallery pages
 ```
 
-### Compile to Binary (`.theos`)
-
-```powershell
-theosc export examples\aquinas_first_way.theo --format binary -o aquinas.theos
-
-```
-
-### Inspect a Compiled Binary Proof
-
-```powershell
-theosc inspect aquinas.theos
-
-```
+Diagnostics go to stderr as `file:line:col: error: message` with the source line underneath;
+exit code 0 = success, 1 = invalid input, 2 = usage error.
 
 ---
 
@@ -77,24 +115,45 @@ theosc inspect aquinas.theos
 
 ```text
 theos-engine/
-├── include/theos/       # Public headers (ast.hpp, parser.hpp, validator.hpp, exporter.hpp, format.hpp)
-├── src/
-│   ├── core/            # Core library implementation (parser, validator, binary format)
-│   └── cli/             # CLI command router and entry point (main.cpp)
-├── examples/            # Sample .theo proof graphs (e.g., aquinas_first_way.theo)
-├── build/               # Build output directory (ignored by git)
-└── CMakeLists.txt       # CMake build configuration
-
+├── include/theos/   # Public headers
+├── src/core/        # Core library (lexer, parser, validator, logic checker, exporter, binary format)
+├── src/cli/         # theosc command-line tool
+├── src/wasm/        # WebAssembly entry point for the playground
+├── web/             # Playground, gallery styles, site assembly
+├── docs/            # User guide; language, proof, analysis, SMT and binary specifications
+├── examples/        # Small teaching examples
+├── library/         # Formalized arguments (the gallery)
+├── fuzz/            # libFuzzer targets and seed corpora
+└── tests/           # Catch2 unit tests and golden files
 ```
+
+---
+
+## Installing
+
+Release archives for Linux and Windows are attached to each
+[GitHub release](https://github.com/JFrusher/theos-engine/releases). Unpack one and run
+`bin/theosc`; the standard library ships alongside it in `share/theos/library`.
 
 ---
 
 ## Building from Source
 
-Requires a C++20 compatible compiler and CMake.
+Requires CMake 3.20+ and a C++23 compiler (GCC 13+, Clang 19+, or MinGW-w64 GCC 13+ via MSYS2).
+Tests use Catch2, fetched automatically by CMake. [Z3](https://github.com/Z3Prover/z3) is optional:
+it is needed for `by z3` and `theosc prove`, and its tests are skipped without it
+(`apt install z3`, or `pacman -S mingw-w64-ucrt-x86_64-z3` in MSYS2).
 
-```powershell
-cmake -B build -G "MinGW Makefiles"
+```sh
+cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-
+ctest --test-dir build --output-on-failure
+./build/theosc
 ```
+
+Fuzzing (Clang 19+): `cmake -B build-fuzz -DCMAKE_CXX_COMPILER=clang++-19 -DTHEOS_FUZZ=ON -DTHEOS_BUILD_TESTS=OFF`,
+then `./build-fuzz/fuzz/decode_fuzzer fuzz/corpus/decode`.
+
+On Windows, run the same commands from an MSYS2 UCRT64 shell (add `-G "MinGW Makefiles"` or `-G Ninja` if needed).
+
+See [ROADMAP.md](ROADMAP.md) for where the project is going. Licensed under the [MIT License](LICENSE).

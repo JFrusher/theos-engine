@@ -1,44 +1,106 @@
 #include "theos/exporter.hpp"
+#include "theos/canon.hpp"
+#include "theos/dialectic.hpp"
 #include <sstream>
 
 namespace Theos::Exporter {
 
-std::string to_mermaid(const AST::TheologicalGraph& graph) {
+namespace {
+
+// Mermaid labels are double-quoted HTML; entity codes keep quotes and brackets from ending them
+std::string escape(const std::string& text) {
+    std::string out;
+    for (char c : text) {
+        switch (c) {
+            case '"': out += "#quot;"; break;
+            case '<': out += "#lt;"; break;
+            case '>': out += "#gt;"; break;
+            case '\n': out += "<br/>"; break;
+            default: out += c;
+        }
+    }
+    return out;
+}
+
+// Breaks long labels at spaces so wide nodes do not stretch the whole graph
+std::string wrap(const std::string& text, size_t width) {
+    std::string out;
+    size_t column = 0;
+    size_t start = 0;
+    while (start < text.size()) {
+        size_t end = text.find(' ', start);
+        if (end == std::string::npos) end = text.size();
+        const std::string word = text.substr(start, end - start);
+        if (column > 0 && column + 1 + word.size() > width) {
+            out += "\n";
+            column = 0;
+        } else if (column > 0) {
+            out += ' ';
+            ++column;
+        }
+        out += word;
+        column += word.size();
+        start = end + 1;
+    }
+    return out;
+}
+
+std::string axiom_label(const AST::Axiom& ax) {
+    switch (ax.kind) {
+        case AST::AxiomKind::Scripture: return ax.scripture.chapter ? Scripture::format(ax.scripture) : ax.citation;
+        case AST::AxiomKind::Source: return ax.citation + ", " + ax.locator;
+        case AST::AxiomKind::Principle: return ax.citation;
+    }
+    return "";
+}
+
+} // namespace
+
+std::string to_mermaid(const AST::Document& doc) {
     std::ostringstream ss;
-    ss << "```mermaid\ngraph TD;\n";
+    ss << "flowchart TD\n";
+    // Manuscript palette: gold leaf for axioms, lapis for claims, rubric red for objections
+    ss << "    classDef axiom fill:#f6efd9,stroke:#a8842a,color:#23212b;\n";
+    ss << "    classDef premise fill:#e7edf7,stroke:#1f4e9c,color:#23212b;\n";
+    ss << "    classDef deduction fill:#f3f4f1,stroke:#5b6b85,color:#23212b;\n";
+    ss << "    classDef conclusion fill:#d6e1f3,stroke:#1f4e9c,stroke-width:3px,color:#23212b;\n";
+    ss << "    classDef objection fill:#f7e3e1,stroke:#b3261e,color:#23212b;\n";
+    ss << "    classDef reply fill:#f3f4f1,stroke:#7a5c2e,color:#23212b;\n";
+    ss << "    classDef imported stroke-dasharray:4 3;\n";
+    // Dialectical status: defeated claims and overruled objections fade; open questions are dashed
+    ss << "    classDef defeated fill:#f3f4f1,stroke:#b3261e,stroke-dasharray:6 3,color:#8a8796;\n";
+    ss << "    classDef undecided stroke-dasharray:2 2;\n";
+    ss << "    classDef overruled fill:#f3f4f1,stroke:#c9ccc6,color:#8a8796;\n";
 
-    // Style definitions for visual hierarchy
-    ss << "    classDef premise fill:#e1f5fe,stroke:#01579b,stroke-width:2px;\n";
-    ss << "    classDef deduction fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;\n";
-    ss << "    classDef conclusion fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px;\n\n";
-
-    // Render nodes with escaped text and styling classes
-    for (const auto& node : graph.nodes) {
-        // Format: NodeID["Node Text"]
-        ss << "    " << node.id << "[\"" << node.id << ": " << node.text << "\"];\n";
-
-        // Apply class based on type
-        if (node.type == "premise") {
-            ss << "    class " << node.id << " premise;\n";
-        } else if (node.type == "deduction") {
-            ss << "    class " << node.id << " deduction;\n";
-        } else if (node.type == "conclusion") {
-            ss << "    class " << node.id << " conclusion;\n";
-        }
+    for (const auto& ax : doc.axioms) {
+        ss << "    " << ax.id << "([\"" << ax.id << ": " << escape(wrap(axiom_label(ax), 40)) << "\"]):::axiom\n";
+    }
+    for (const auto& n : doc.nodes) {
+        ss << "    " << n.id << "[\"<b>" << n.id << "</b>: " << escape(wrap(n.text, 40)) << "<br/><i>"
+           << escape(wrap(print(*n.formula, Notation::Unicode), 48)) << "</i>\"]:::" << AST::to_string(n.kind) << "\n";
+        if (n.imported) ss << "    class " << n.id << " imported\n";
+    }
+    for (const auto& d : doc.dialectics) {
+        ss << "    " << d.id << "{{\"<b>" << d.id << "</b>: " << escape(wrap(d.text, 40)) << "\"}}:::" << AST::to_string(d.kind) << "\n";
     }
 
-    ss << "\n    %% Dependencies and Support Edges\n";
-    for (const auto& node : graph.nodes) {
-        // Combine supports and depends_on edges
-        std::vector<std::string> parents = node.supports;
-        parents.insert(parents.end(), node.depends_on.begin(), node.depends_on.end());
-
-        for (const auto& parent : parents) {
-            ss << "    " << parent << " --> " << node.id << ";\n";
-        }
+    const auto ev = Dialectic::evaluate(doc);
+    for (const auto& [id, status] : ev.nodes) {
+        if (status != Dialectic::Status::Accepted) ss << "    class " << id << " " << Dialectic::to_string(status) << "\n";
+    }
+    for (const auto& [id, status] : ev.dialectics) {
+        if (status == Dialectic::Status::Defeated) ss << "    class " << id << " overruled\n";
+        if (status == Dialectic::Status::Undecided) ss << "    class " << id << " undecided\n";
     }
 
-    ss << "```\n";
+    for (const auto& n : doc.nodes) {
+        for (const auto& g : n.grounded_by) ss << "    " << g.name << " -.-> " << n.id << "\n";
+        for (const auto& f : n.from) ss << "    " << f.name << " --> " << n.id << "\n";
+    }
+    for (const auto& d : doc.dialectics) {
+        ss << "    " << d.id << " -. " << (d.kind == AST::DialecticKind::Objection ? "objects" : "replies") << " .-> "
+           << d.target.name << "\n";
+    }
     return ss.str();
 }
 

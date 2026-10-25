@@ -1,0 +1,46 @@
+// The finished argument from the tutorial in docs/guide.md.
+
+argument "The Fine-Tuning Argument" by "Theos tutorial"
+
+axiom Barnes = source("Luke Barnes, The Fine-Tuning of the Universe for Intelligent Life", "2012")
+axiom Collins = source("Robin Collins, The Teleological Argument", "Blackwell Companion to Natural Theology, 2009")
+
+premise P1 grounded_by [Collins] {
+    text:    "The fine-tuning of the universe is due to physical necessity, chance, or design."
+    formula: Necessity | Chance | Design
+}
+
+premise P2 grounded_by [Barnes] {
+    text:    "It is not due to physical necessity: the constants could have been otherwise."
+    formula: ~Necessity
+}
+
+premise P3 grounded_by [Collins] {
+    text:    "It is not due to chance: the odds are far too small."
+    formula: ~Chance
+}
+
+conclusion C1 from [P1, P2, P3] {
+    text:    "Therefore it is due to design."
+    formula: Design
+    proof {
+        1. Necessity | Chance | Design      premise P1
+        2. ~Necessity                       premise P2
+        3. ~Chance                          premise P3
+        {
+            4. Necessity | Chance           assume
+            5. Chance                       ds 4, 2
+            6. bot                          not_e 5, 3
+        }
+        7. ~(Necessity | Chance)            not_i 4-6
+        8. Design                           ds 1, 7
+    }
+}
+
+objection O1 against P3 {
+    text: "If there are many universes, some are bound to be fine-tuned by chance."
+}
+
+reply R1 to O1 {
+    text: "A mechanism that generates many universes would itself need fine-tuning."
+}
