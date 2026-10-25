@@ -8,6 +8,7 @@
 - **Check the library:** `for f in library/arguments/*.theo; do ./build/theosc check $f; done`
 - **Fuzz (Clang 19):** `cmake -B build-fuzz -DCMAKE_CXX_COMPILER=clang++-19 -DTHEOS_FUZZ=ON -DTHEOS_BUILD_TESTS=OFF`
 - **WebAssembly (Emscripten 3.1.74):** `emcmake cmake -B build-wasm -DTHEOS_BUILD_TESTS=OFF && cmake --build build-wasm`, then `node tests/web/wasm_smoke.cjs`
+- **README images:** `node tools/readme/render.cjs` regenerates `docs/assets/` from `build/theosc` and `web/dist` (needs ffmpeg and network)
 
 ## Layout
 - `src/core/`: lexer, parser, validator, types (sorts), checker (decision procedures + `proof_checker`), `s5`, `truth_table`, `logic` (substitution, alpha-equivalence, definitions), `dialectic`, `analysis`, `smt`, `binary`, `exporter`, `site`, `driver` (imports + pipeline).
